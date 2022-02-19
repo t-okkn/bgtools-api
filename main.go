@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+
+	"bgtools-api/web"
 )
 
 const LISTEN_PORT string = ":8506"
@@ -21,5 +23,5 @@ func main() {
 		return
 	}
 
-	SetupRouter().Run(LISTEN_PORT)
+	web.SetupRouter().Run(LISTEN_PORT)
 }

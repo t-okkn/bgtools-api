@@ -1,4 +1,4 @@
-package main
+package web
 
 import (
 	"bgtools-api/ws"
@@ -19,5 +19,5 @@ func SetupRouter() *gin.Engine {
 
 // <summary>: WebSocket系の処理が実行されます
 func wsServe(c *gin.Context) {
-	ws.Handler(c.Writer, c.Request)
+	ws.EntryPoint(c.Writer, c.Request)
 }
