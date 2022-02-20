@@ -19,14 +19,14 @@ func EntryPoint(w http.ResponseWriter, r *http.Request) {
 
 	wsconn := &WsConnection{conn}
 	obj, _ := uuid.NewRandom()
-	uuidStr := obj.String()
+	uuid_str := obj.String()
 
-	WsConnPool[uuidStr] = wsconn
+	WsConnPool[uuid_str] = wsconn
 
 	res := models.WsResponse{
 		Method: models.CONNCTED.String(),
 		Params: models.ConnectedResponse{
-			ConnId: uuidStr,
+			ConnId: uuid_str,
 		},
 	}
 
@@ -34,7 +34,7 @@ func EntryPoint(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Failed to send message: %s\n", err)
 	}
 
-	go readRequests(wsconn)
+	go readRequests(uuid_str, wsconn)
 }
 
 // <summary>: Websocketでの電文のやり取りを行います
@@ -47,7 +47,7 @@ func ListenAndServe() {
 		switch models.ParseMethod(e.Method) {
 		case models.CREATE_ROOM:
 			action = actionCreateRoom
-		
+
 		default:
 			fmt.Println("Method is NONE")
 			continue
@@ -58,9 +58,10 @@ func ListenAndServe() {
 }
 
 // <summary>: 受信した内容を読み取ります
-func readRequests(conn *WsConnection) {
+func readRequests(id string, conn *WsConnection) {
 	defer func() {
 		if r := recover(); r != nil {
+			deleteConnection(id)
 			fmt.Printf("Error: %v\n", r)
 		}
 	}()
@@ -74,3 +75,29 @@ func readRequests(conn *WsConnection) {
 		}
 	}
 }
+
+// <summary>: 接続情報を削除します
+func deleteConnection(id string) {
+	check := ""
+
+	for roomid, room := range RoomPool {
+		_, exsit := room.Players[id]
+
+		if exsit {
+			delete(room.Players, id)
+
+			if len(room.Players) == 0 {
+				check = roomid
+			}
+
+			break
+		}
+	}
+
+	if check != "" {
+		delete(RoomPool, check)
+	}
+
+	delete(WsConnPool, id)
+}
+
