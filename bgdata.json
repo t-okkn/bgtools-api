@@ -1,11 +1,11 @@
 {
     "a": {
-        "title": "花とミツバチ", "min": 2, "max": 4
+        "title": "花とミツバチ", "min_players": 2, "max_players": 4
     },
     "b": {
-        "title": "Mystic Vale", "min": 2, "max": 4
+        "title": "Mystic Vale", "min_players": 2, "max_players": 4
     },
     "c": {
-        "title": "Mystic Vale Conclave", "min": 2, "max": 6
+        "title": "Mystic Vale Conclave", "min_players": 2, "max_players": 6
     }
 }
