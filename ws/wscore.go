@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// <summary>: Websocket接続時に行われる動作
 func EntryPoint(w http.ResponseWriter, r *http.Request) {
 	conn, err := wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -36,6 +37,7 @@ func EntryPoint(w http.ResponseWriter, r *http.Request) {
 	go readRequests(wsconn)
 }
 
+// <summary>: Websocketでの電文のやり取りを行います
 func ListenAndServe() {
 	for {
 		// メッセージが入るまで、ここでブロック
@@ -55,6 +57,7 @@ func ListenAndServe() {
 	}
 }
 
+// <summary>: 受信した内容を読み取ります
 func readRequests(conn *WsConnection) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -72,6 +75,7 @@ func readRequests(conn *WsConnection) {
 	}
 }
 
+// <summary>: [Method] create_room に関する動作を定義します
 func actionCreateRoom(req models.WsRequest) {
 	conn, ok := WsConnPool[req.PlayerInfo.ConnId]
 	if !ok {

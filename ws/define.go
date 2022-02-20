@@ -21,7 +21,9 @@ var (
 
 	chWsReq = make(chan models.WsRequest)
 
+	// <summary>: 接続情報のプール
 	WsConnPool = map[string]*WsConnection{}
 
+	// <summary>: 部屋情報のプール
 	RoomPool = map[string]models.RoomInfoSet{}
 )

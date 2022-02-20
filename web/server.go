@@ -53,6 +53,7 @@ func checkRoom(c *gin.Context) {
 	c.JSON(http.StatusOK, rv)
 }
 
+// <summary>: ボードゲーム情報を取得します
 func getBoardgames(c *gin.Context) {
 	gameid := c.Param("gameId")
 
@@ -74,6 +75,7 @@ func getBoardgames(c *gin.Context) {
 	}
 }
 
+// <summary>: 部屋情報を取得します
 func getRooms(c *gin.Context) {
 	roomid := c.Param("roomId")
 	summary := make([]models.RoomSummary, 0, len(ws.RoomPool))
@@ -111,6 +113,7 @@ func getRooms(c *gin.Context) {
 	}
 }
 
+// <summary>: 接続情報を取得します
 func getConnections(c *gin.Context) {
 	connid := c.Param("connId")
 	summary := make([]models.ConnectionSummary, 0, len(ws.WsConnPool))

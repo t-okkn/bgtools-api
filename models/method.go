@@ -15,10 +15,12 @@ const (
 	FAILED   Method = "failed"
 )
 
+// <summary>: Methodを文字列として表現します
 func (m Method) String() string {
 	return string(m)
 }
 
+// <summary>: 文字列をMethodとして表現します
 func ParseMethod(s string) (m Method) {
 	switch strings.ToLower(s) {
 	case "b", "bc", "broadcast":
