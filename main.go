@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"bgtools-api/web"
+	"bgtools-api/ws"
 )
 
 const LISTEN_PORT string = ":8506"
@@ -22,6 +23,8 @@ func main() {
 		fmt.Println(Version, Revision)
 		return
 	}
+
+	go ws.ListenAndServe()
 
 	web.SetupRouter().Run(LISTEN_PORT)
 }
