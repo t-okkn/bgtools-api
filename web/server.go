@@ -15,7 +15,7 @@ func SetupRouter() *gin.Engine {
 	router := gin.Default()
 	v1 := router.Group("v1")
 
-	v1.GET("/join", wsEntry)
+	v1.GET("/entry", wsEntry)
 	v1.GET("/check/rooms/:roomId", checkRoom)
 	v1.GET("/boardgames", getBoardgames)
 	v1.GET("/boardgames/:gameId", getBoardgames)
@@ -32,9 +32,7 @@ func SetupRouter() *gin.Engine {
 
 // <summary>: WebSocket系の処理が実行されます
 func wsEntry(c *gin.Context) {
-	// ws内部でgoroutineを使用しているので、コンテクストをコピー
-	ccp := c.Copy()
-	ws.EntryPoint(ccp.Writer, ccp.Request)
+	ws.EntryPoint(c.Writer, c.Request)
 }
 
 // <summary>: 部屋情報が存在しているか確認します
