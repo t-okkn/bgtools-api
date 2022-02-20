@@ -10,14 +10,14 @@ type PlayerInfoSet struct {
 
 // <summary>: 部屋のゲーム内容と部屋にいるプレーヤー情報
 type RoomInfoSet struct {
-	GameId  string
-	Players map[string]string
+	GameId  string `json:"game_id"`
+	Players map[string]string `json:"players"`
 }
 
 // <summary>: WebSocketsでの受信用データの構造体
 type WsRequest struct {
 	Method     string        `json:"method"`
-	PlayerInfo PlayerInfoSet `json:"player_info"`
+	PlayerInfo PlayerInfoSet `json:"player"`
 	Points     []int         `json:"points"`
 }
 
@@ -35,7 +35,7 @@ type ConnectedResponse struct {
 // <summary>: 部屋へ接続をしに来た時、Response内のParamsに使用される構造体
 type RoomResponse struct {
 	IsWait   bool        `json:"is_wait"`
-	RoomInfo RoomInfoSet `json:"room_info"`
+	RoomInfo RoomInfoSet `json:"room"`
 }
 
 // <summary>: 失敗したときの情報を格納する構造体
