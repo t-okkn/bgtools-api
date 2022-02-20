@@ -32,7 +32,9 @@ func SetupRouter() *gin.Engine {
 
 // <summary>: WebSocket系の処理が実行されます
 func wsEntry(c *gin.Context) {
-	ws.EntryPoint(c.Writer, c.Request)
+	// ws内部でgoroutineを使用しているので、コンテクストをコピー
+	ccp := c.Copy()
+	ws.EntryPoint(ccp.Writer, ccp.Request)
 }
 
 // <summary>: 部屋情報が存在しているか確認します
