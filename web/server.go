@@ -67,7 +67,7 @@ func getBoardgames(c *gin.Context) {
 			res := make(map[string]models.BoardgameData, 1)
 			res[gameid] = data
 
-			c.JSON(http.StatusOK, models.BGCollection)
+			c.JSON(http.StatusOK, res)
 
 		} else {
 			c.JSON(http.StatusBadRequest, models.ErrBoardgameNotFound)
@@ -108,15 +108,30 @@ func getRooms(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, models.ErrRoomNotFound)
 			return
 		}
-
-		c.JSON(http.StatusOK, summary)
 	}
+
+	c.JSON(http.StatusOK, summary)
 }
 
 // <summary>: 接続情報を取得します
 func getConnections(c *gin.Context) {
 	connid := c.Param("connId")
 	summary := make([]models.ConnectionSummary, 0, len(ws.WsConnPool))
+
+	empty := func(id string) models.ConnectionSummary {
+		return models.ConnectionSummary{
+			ConnId:       id,
+			RoomId:       "",
+			GameId:       "",
+			PlayerColor:  "",
+			OtherPlayers: map[string]string{},
+			GameData:     models.BoardgameData{
+				Title: "",
+				MinPlayers: -1,
+				MaxPlayers: -1,
+			},
+		}
+	}
 
 	if connid == "" {
 		conns := make(map[string]struct{}, len(ws.WsConnPool))
@@ -142,7 +157,7 @@ func getConnections(c *gin.Context) {
 				}
 
 				cs := models.ConnectionSummary{
-					ConnId:       connid,
+					ConnId:       cid,
 					RoomId:       roomid,
 					GameId:       gameid,
 					GameData:     models.BGCollection[gameid],
@@ -155,13 +170,22 @@ func getConnections(c *gin.Context) {
 			}
 		}
 
-		if len(conns) == 0 {
-			c.JSON(http.StatusOK, summary)
-		} else {
-			c.AbortWithStatus(http.StatusInternalServerError)
+		if len(conns) != 0 {
+			for key := range conns {
+				cs := empty(key)
+				summary = append(summary, cs)
+			}
 		}
 
+		c.JSON(http.StatusOK, summary)
+
 	} else {
+		_, exsit := ws.WsConnPool[connid]
+		if !exsit {
+			c.JSON(http.StatusBadRequest, models.ErrTargetConnectionNotFound)
+			return
+		}
+
 		found := false
 		var cs models.ConnectionSummary
 
@@ -174,7 +198,7 @@ func getConnections(c *gin.Context) {
 					gameid := room.GameId
 
 					cs = models.ConnectionSummary{
-						ConnId:      connid,
+						ConnId:      cid,
 						RoomId:      roomid,
 						GameId:      gameid,
 						GameData:    models.BGCollection[gameid],
@@ -192,12 +216,11 @@ func getConnections(c *gin.Context) {
 			}
 		}
 
-		if found {
-			summary = append(summary, cs)
-			c.JSON(http.StatusOK, summary)
-
-		} else {
-			c.JSON(http.StatusBadRequest, models.ErrTargetConnectionNotFound)
+		if !found {
+			cs = empty(connid)
 		}
+
+		res := []models.ConnectionSummary{cs}
+		c.JSON(http.StatusOK, res)
 	}
 }
