@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 
+	"bgtools-api/models"
 	"bgtools-api/web"
 	"bgtools-api/ws"
 )
@@ -22,6 +23,10 @@ func main() {
 	if flag.Arg(0) == "version" {
 		fmt.Println(Version, Revision)
 		return
+	}
+
+	if err := models.LoadBoardgameData(); err != nil {
+		panic("Fail to load boardgame data")
 	}
 
 	go ws.ListenAndServe()
