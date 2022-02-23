@@ -10,7 +10,7 @@ type PlayerInfoSet struct {
 
 // <summary>: 部屋のゲーム内容と部屋にいるプレーヤー情報
 type RoomInfoSet struct {
-	GameId  string `json:"game_id"`
+	GameId  string            `json:"game_id"`
 	Players map[string]string `json:"players"`
 }
 
@@ -38,8 +38,8 @@ type RoomResponse struct {
 	RoomInfo RoomInfoSet `json:"room"`
 }
 
-// <summary>: 失敗したときの情報を格納する構造体
-type FailedResponse struct {
+// <summary>: エラーに関する情報を格納する構造体
+type ErrorMessage struct {
 	Error   string `json:"error"`
 	Message string `json:"message"`
 }

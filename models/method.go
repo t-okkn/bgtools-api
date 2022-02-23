@@ -5,14 +5,14 @@ import "strings"
 type Method string
 
 const (
-	NONE        Method = "none"
-	BROADCAST   Method = "broadcast"
-	CREATE_ROOM Method = "create_room"
-	JOIN_ROOM   Method = "join_room"
+	NONE        Method = "NONE"
+	BROADCAST   Method = "BROADCAST"
+	CREATE_ROOM Method = "CREATEROOM"
+	JOIN_ROOM   Method = "JOINROOM"
 
-	CONNCTED Method = "connected"
-	ACCEPTED Method = "accepted"
-	FAILED   Method = "failed"
+	CONNCTED Method = "CONNCTED"
+	ACCEPTED Method = "ACCEPTED"
+	ERROR    Method = "ERROR"
 )
 
 // <summary>: Methodを文字列として表現します
@@ -26,10 +26,10 @@ func ParseMethod(s string) (m Method) {
 	case "b", "bc", "broadcast":
 		m = BROADCAST
 
-	case "cr", "create_room":
+	case "cr", "createroom":
 		m = CREATE_ROOM
 
-	case "jr", "join_room":
+	case "jr", "joinroom":
 		m = JOIN_ROOM
 
 	default:

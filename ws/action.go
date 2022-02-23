@@ -38,7 +38,7 @@ func actionCreateRoom(req models.WsRequest) {
 
 	} else {
 		response = models.WsResponse{
-			Method: models.FAILED.String(),
+			Method: models.ERROR.String(),
 			Params: models.ErrRoomExisted,
 		}
 	}
