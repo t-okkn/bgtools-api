@@ -11,9 +11,17 @@ import (
 
 // <summary>: Websocket接続時に行われる動作
 func EntryPoint(w http.ResponseWriter, r *http.Request) {
+	logp := newLogParams()
+	logp.ClientIP = r.RemoteAddr
+	logp.Message = "クライアントからの新規接続要求"
+	logp.log()
+
 	conn, err := wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
-		fmt.Printf("Failed to set websocket upgrade: %s\n", err)
+		logp.IsProcError = true
+		logp.Message = fmt.Sprintf("WebSocketのUpgradeに失敗しました：%s", err)
+		logp.log()
+
 		return
 	}
 
@@ -22,6 +30,8 @@ func EntryPoint(w http.ResponseWriter, r *http.Request) {
 	uuid_str := obj.String()
 
 	WsConnPool[uuid_str] = wsconn
+	logp.ConnId = uuid_str
+	logp.Method = models.CONNCTED
 
 	res := models.WsResponse{
 		Method: models.CONNCTED.String(),
@@ -30,8 +40,15 @@ func EntryPoint(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	if err := conn.WriteJSON(res); err != nil {
-		fmt.Printf("Failed to send message: %s\n", err)
+	if err := conn.WriteJSON(res); err == nil {
+		logp.Message = fmt.Sprintf("<CONNECTED> 送信完了：%+v", res)
+		logp.log()
+
+	} else {
+		logp.IsProcError = true
+		logp.Message =
+			fmt.Sprintf("<CONNECTED> メッセージの送信に失敗しました：%s", err)
+		logp.log()
 	}
 
 	go readRequests(uuid_str, wsconn)
@@ -49,8 +66,7 @@ func ListenAndServe() {
 			action = actionCreateRoom
 
 		default:
-			fmt.Println("Method is NONE")
-			continue
+			action = actionNone
 		}
 
 		action(e)
@@ -61,17 +77,37 @@ func ListenAndServe() {
 func readRequests(id string, conn *WsConnection) {
 	defer func() {
 		if r := recover(); r != nil {
+			elogp := newLogParams()
+			elogp.ClientIP = conn.RemoteAddr().String()
+			elogp.ConnId = id
+
 			deleteConnection(id)
-			fmt.Printf("Error: %v\n", r)
+
+			elogp.IsProcError = true
+			elogp.Message = fmt.Sprintf("予期せぬエラーが発生しました：%s", r)
+			elogp.log()
 		}
 	}()
 
 	var req models.WsRequest
 
 	for {
-		err := conn.ReadJSON(&req)
-		if err == nil {
+		logp := newLogParams()
+		logp.ClientIP = conn.RemoteAddr().String()
+		logp.ConnId = id
+
+		if err := conn.ReadJSON(&req); err == nil {
+			logp.Method = models.ParseMethod(req.Method)
+			logp.Message = fmt.Sprintf("メッセージ受信：%+v", req)
+			logp.log()
+
 			chWsReq <- req
+
+		} else {
+			logp.IsProcError = true
+			logp.Message =
+				fmt.Sprintf("メッセージの受信に失敗しました：%s", err)
+			logp.log()
 		}
 	}
 }

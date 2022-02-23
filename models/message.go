@@ -18,8 +18,14 @@ var ErrBoardgameNotFound = ErrorMessage{
 	Message: "指定されたボードゲームは存在しません",
 }
 
+// <summary>: 【エラー】無効なメソッド
+var ErrInvalidMethod = ErrorMessage{
+	Error: "E101",
+	Message: "無効なメソッドが指定されました",
+}
+
 // <summary>: 【エラー】部屋が既に存在します
 var ErrRoomExisted = ErrorMessage{
-	Error: "E101",
+	Error: "E201",
 	Message: "指定された部屋は既に存在しています",
 }

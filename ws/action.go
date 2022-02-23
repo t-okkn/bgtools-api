@@ -2,16 +2,28 @@ package ws
 
 import (
 	"fmt"
+	"time"
 
 	"bgtools-api/models"
 )
 
-// <summary>: [Method] create_room に関する動作を定義します
+// <summary>: [Method] CREATEROOM に関する動作を定義します
 func actionCreateRoom(req models.WsRequest) {
+	logp := newLogParams()
+	start := time.Now()
+
+	logp.ConnId = req.PlayerInfo.ConnId
+
 	conn, ok := WsConnPool[req.PlayerInfo.ConnId]
 	if !ok {
+		logp.IsProcError = true
+		logp.Message = "<CREATEROOM> 送信されたconnection_idが不正です"
+		logp.log()
+
 		return
 	}
+
+	logp.ClientIP = conn.RemoteAddr().String()
 
 	var response models.WsResponse
 	_, exsit := RoomPool[req.PlayerInfo.RoomId]
@@ -43,7 +55,57 @@ func actionCreateRoom(req models.WsRequest) {
 		}
 	}
 
-	if err := conn.WriteJSON(response); err != nil {
-		fmt.Printf("Failed to send message: %v\n", err)
+	d := getProcTime(start)
+
+	if err := conn.WriteJSON(response); err == nil {
+		logp.Method = models.ParseMethod(response.Method)
+		logp.Message =
+			fmt.Sprintf("<CREATEROOM> 処理時間：%v, 送信完了：%+v", d, response)
+		logp.log()
+
+	} else {
+		logp.IsProcError = true
+		logp.Message =
+			fmt.Sprintf("<CREATEROOM> メッセージの送信に失敗しました：%s", err)
+		logp.log()
+	}
+}
+
+// <summary>: [Method] NONE に関する動作を定義します
+func actionNone(req models.WsRequest) {
+	logp := newLogParams()
+	start := time.Now()
+
+	logp.ConnId = req.PlayerInfo.ConnId
+
+	conn, ok := WsConnPool[req.PlayerInfo.ConnId]
+	if !ok {
+		logp.IsProcError = true
+		logp.Message = "<NONE> 送信されたconnection_idが不正です"
+		logp.log()
+
+		return
+	}
+
+	logp.ClientIP = conn.RemoteAddr().String()
+
+	response := models.WsResponse{
+		Method: models.ERROR.String(),
+		Params: models.ErrInvalidMethod,
+	}
+
+	d := getProcTime(start)
+
+	if err := conn.WriteJSON(response); err == nil {
+		logp.Method = models.ParseMethod(response.Method)
+		logp.Message =
+			fmt.Sprintf("<NONE> 処理時間：%v, 送信完了：%+v", d, response)
+		logp.log()
+
+	} else {
+		logp.IsProcError = true
+		logp.Message =
+			fmt.Sprintf("<NONE> メッセージの送信に失敗しました：%s", err)
+		logp.log()
 	}
 }
