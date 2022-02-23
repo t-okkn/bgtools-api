@@ -32,6 +32,15 @@ func ParseMethod(s string) (m Method) {
 	case "jr", "joinroom":
 		m = JOIN_ROOM
 
+	case "connected":
+		m = CONNCTED
+
+	case "accepted":
+		m = ACCEPTED
+
+	case "error":
+		m = ERROR
+
 	default:
 		m = NONE
 	}
