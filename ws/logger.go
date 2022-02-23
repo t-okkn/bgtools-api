@@ -93,7 +93,7 @@ func (p logParams) log() {
 		)
 	}
 
-	fmt.Fprintf(outputDestination, "%s¥n", str)
+	fmt.Fprintf(outputDestination, "%s\n", str)
 }
 
 // <summary>: Method用の色を出力します
