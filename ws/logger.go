@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"bgtools-api/models"
@@ -70,6 +71,11 @@ func (p logParams) log() {
 	}
 
 	tag := "WS"
+	ip := p.ClientIP
+	if strings.Contains(ip, ":") {
+		ip = strings.Split(ip, ":")[0]
+	}
+
 	var str string
 
 	if p.IsProcError {
@@ -78,15 +84,15 @@ func (p logParams) log() {
 		str = fmt.Sprintf("[%s] %v | %15s | %s | 【処理エラー】%s",
 			tag,
 			time.Now().Format("2006/01/02 - 15:04:05"),
-			p.ClientIP,
+			ip,
 			p.ConnId,
 			p.Message,
 		)
 	} else {
-		str = fmt.Sprintf("[%s] %v | %15s | %s |%s %-10s %s %s",
+		str = fmt.Sprintf("[%s] %v | %15s | %s |%s %-10s %s| %s",
 			tag,
 			time.Now().Format("2006/01/02 - 15:04:05"),
-			p.ClientIP,
+			ip,
 			p.ConnId,
 			p.methodColor(), p.Method.String(), resetColor,
 			p.Message,
