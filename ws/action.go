@@ -13,6 +13,7 @@ func actionCreateRoom(req models.WsRequest) {
 	start := time.Now()
 
 	logp.ConnId = req.PlayerInfo.ConnId
+	logp.ClientIP = req.ClientIP
 
 	conn, ok := WsConnPool[req.PlayerInfo.ConnId]
 	if !ok {
@@ -22,8 +23,6 @@ func actionCreateRoom(req models.WsRequest) {
 
 		return
 	}
-
-	logp.ClientIP = conn.RemoteAddr().String()
 
 	var response models.WsResponse
 	_, exsit := RoomPool[req.PlayerInfo.RoomId]
@@ -77,6 +76,7 @@ func actionNone(req models.WsRequest) {
 	start := time.Now()
 
 	logp.ConnId = req.PlayerInfo.ConnId
+	logp.ClientIP = req.ClientIP
 
 	conn, ok := WsConnPool[req.PlayerInfo.ConnId]
 	if !ok {
@@ -86,8 +86,6 @@ func actionNone(req models.WsRequest) {
 
 		return
 	}
-
-	logp.ClientIP = conn.RemoteAddr().String()
 
 	response := models.WsResponse{
 		Method: models.ERROR.String(),

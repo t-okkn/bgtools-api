@@ -19,6 +19,7 @@ type WsRequest struct {
 	Method     string        `json:"method"`
 	PlayerInfo PlayerInfoSet `json:"player"`
 	Points     []int         `json:"points"`
+	ClientIP   string        `json:"-"`
 }
 
 // <summary>: WebSocketsからの返却用データの構造体

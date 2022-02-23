@@ -97,6 +97,8 @@ func readRequests(id string, conn *WsConnection) {
 		logp.ConnId = id
 
 		if err := conn.ReadJSON(&req); err == nil {
+			req.ClientIP = conn.RemoteAddr().String()
+
 			logp.Method = models.ParseMethod(req.Method)
 			logp.Message = fmt.Sprintf("メッセージ受信：%+v", req)
 			logp.log()
