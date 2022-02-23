@@ -7,6 +7,7 @@ import (
 	"bgtools-api/models"
 
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 )
 
 // <summary>: Websocket接続時に行われる動作
@@ -110,6 +111,18 @@ func readRequests(id string, conn *WsConnection) {
 			logp.Message =
 				fmt.Sprintf("メッセージの受信に失敗しました：%s", err)
 			logp.log()
+
+			// TODO: 他のCloseCodeのときはどうするか検討
+			// そもそもどういう状況でどんなCloseCodeになるか要調査
+			if websocket.IsCloseError(err, websocket.CloseNoStatusReceived) {
+				deleteConnection(id)
+
+				logp.IsProcError = false
+				logp.Message = "接続が切断されました"
+				logp.log()
+
+				break
+			}
 		}
 	}
 }
