@@ -140,6 +140,8 @@ func deleteConnection(id string) {
 			if len(room.Players) == 0 {
 				check = roomid
 			}
+			// TODO: 部屋にいる人に通知が必要
+			// TODO: また、最小プレー人数を下回ったら待機状態にすべき
 
 			break
 		}

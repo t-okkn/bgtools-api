@@ -80,14 +80,20 @@ func (p logParams) log() {
 
 	if p.IsProcError {
 		tag = "WS-Error"
+		redColor := red
 
-		str = fmt.Sprintf("[%s] %v | %15s | %s | 【処理エラー】%s",
+		if !enableColorMode {
+			redColor = ""
+		}
+
+		str = fmt.Sprintf("[%s] %v | %15s | %s | %s【処理エラー】%s%s",
 			tag,
 			time.Now().Format("2006/01/02 - 15:04:05"),
 			ip,
 			p.ConnId,
-			p.Message,
+			redColor, resetColor, p.Message,
 		)
+
 	} else {
 		str = fmt.Sprintf("[%s] %v | %15s | %s |%s %-10s %s| %s",
 			tag,
