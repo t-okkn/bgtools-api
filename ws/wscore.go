@@ -131,6 +131,7 @@ func readRequests(id string, conn *WsConnection) {
 func deleteConnection(id string) {
 	check := ""
 
+	// TODO: RoomPoolのロック制御しないと、非同期で読み書きし放題は・・・
 	for roomid, room := range RoomPool {
 		_, exsit := room.Players[id]
 

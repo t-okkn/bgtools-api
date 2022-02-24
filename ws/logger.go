@@ -127,7 +127,7 @@ func (p logParams) methodColor() string {
 	case models.CONNCTED:
 		return bgreen
 
-	case models.ACCEPTED:
+	case models.OK:
 		return green
 
 	case models.ERROR:

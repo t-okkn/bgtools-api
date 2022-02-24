@@ -7,7 +7,7 @@ import (
 	"bgtools-api/models"
 )
 
-// <summary>: [Method] CREATEROOM に関する動作を定義します
+// <summary>: [Method] CRRM に関する動作を定義します
 func actionCreateRoom(req models.WsRequest) {
 	logp := newLogParams()
 	start := time.Now()
@@ -18,7 +18,7 @@ func actionCreateRoom(req models.WsRequest) {
 	conn, ok := WsConnPool[req.PlayerInfo.ConnId]
 	if !ok {
 		logp.IsProcError = true
-		logp.Message = "<CREATEROOM> 送信されたconnection_idが不正です"
+		logp.Message = "<CRRM> 送信されたconnection_idが不正です"
 		logp.log()
 
 		return
@@ -40,7 +40,7 @@ func actionCreateRoom(req models.WsRequest) {
 		RoomPool[req.PlayerInfo.RoomId] = room
 
 		response = models.WsResponse{
-			Method: models.ACCEPTED.String(),
+			Method: models.OK.String(),
 			Params: models.RoomResponse{
 				IsWait:   data.MinPlayers >= 2,
 				RoomInfo: room,
@@ -59,13 +59,13 @@ func actionCreateRoom(req models.WsRequest) {
 	if err := conn.WriteJSON(response); err == nil {
 		logp.Method = models.ParseMethod(response.Method)
 		logp.Message =
-			fmt.Sprintf("<CREATEROOM> 処理時間：%v, 送信完了：%+v", d, response)
+			fmt.Sprintf("<CRRM> 処理時間：%v, 送信完了：%+v", d, response)
 		logp.log()
 
 	} else {
 		logp.IsProcError = true
 		logp.Message =
-			fmt.Sprintf("<CREATEROOM> メッセージの送信に失敗しました：%s", err)
+			fmt.Sprintf("<CRRM> メッセージの送信に失敗しました：%s", err)
 		logp.log()
 	}
 }

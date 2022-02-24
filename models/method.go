@@ -6,13 +6,13 @@ type Method string
 
 const (
 	NONE        Method = "NONE"
-	BROADCAST   Method = "BROADCAST"
-	CREATE_ROOM Method = "CREATEROOM"
-	JOIN_ROOM   Method = "JOINROOM"
+	BROADCAST   Method = "BRDC"
+	CREATE_ROOM Method = "CRRM"
+	JOIN_ROOM   Method = "JNRM"
 
-	CONNCTED Method = "CONNCTED"
-	ACCEPTED Method = "ACCEPTED"
-	ERROR    Method = "ERROR"
+	CONNCTED Method = "CONN"
+	OK       Method = "OK"
+	ERROR    Method = "ERR"
 )
 
 // <summary>: Methodを文字列として表現します
@@ -23,22 +23,22 @@ func (m Method) String() string {
 // <summary>: 文字列をMethodとして表現します
 func ParseMethod(s string) (m Method) {
 	switch strings.ToLower(s) {
-	case "b", "bc", "broadcast":
+	case "brdc":
 		m = BROADCAST
 
-	case "cr", "createroom":
+	case "crrm":
 		m = CREATE_ROOM
 
-	case "jr", "joinroom":
+	case "jnrm":
 		m = JOIN_ROOM
 
-	case "connected":
+	case "conn":
 		m = CONNCTED
 
-	case "accepted":
-		m = ACCEPTED
+	case "ok":
+		m = OK
 
-	case "error":
+	case "err":
 		m = ERROR
 
 	default:
