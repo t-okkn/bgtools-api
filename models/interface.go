@@ -1,5 +1,7 @@
 package models
 
+import "net"
+
 // <summary>: 接続元プレーヤーの固有情報
 type PlayerInfoSet struct {
 	RoomId      string `json:"room_id"`
@@ -19,7 +21,7 @@ type WsRequest struct {
 	Method     string        `json:"method"`
 	PlayerInfo PlayerInfoSet `json:"player"`
 	Points     []int         `json:"points"`
-	ClientIP   string        `json:"-"`
+	ClientIP   net.Addr      `json:"-"`
 }
 
 // <summary>: WebSocketsからの返却用データの構造体

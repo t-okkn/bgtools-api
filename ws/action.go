@@ -9,17 +9,13 @@ import (
 
 // <summary>: [Method] CRRM に関する動作を定義します
 func actionCreateRoom(req models.WsRequest) {
-	logp := newLogParams()
+	logp := newLogParams(req.PlayerInfo.ConnId, req.ClientIP)
 	start := time.Now()
-
-	logp.ConnId = req.PlayerInfo.ConnId
-	logp.ClientIP = req.ClientIP
 
 	conn, ok := WsConnPool[req.PlayerInfo.ConnId]
 	if !ok {
 		logp.IsProcError = true
-		logp.Message = "<CRRM> 送信されたconnection_idが不正です"
-		logp.log()
+		logp.log("<CRRM> 送信されたconnection_idが不正です")
 
 		return
 	}
@@ -58,31 +54,23 @@ func actionCreateRoom(req models.WsRequest) {
 
 	if err := conn.WriteJSON(response); err == nil {
 		logp.Method = models.ParseMethod(response.Method)
-		logp.Message =
-			fmt.Sprintf("<CRRM> 処理時間：%v, 送信完了：%+v", d, response)
-		logp.log()
+		logp.log(fmt.Sprintf("<CRRM> 処理時間：%v, 送信完了：%+v", d, response))
 
 	} else {
 		logp.IsProcError = true
-		logp.Message =
-			fmt.Sprintf("<CRRM> メッセージの送信に失敗しました：%s", err)
-		logp.log()
+		logp.log(fmt.Sprintf("<CRRM> メッセージの送信に失敗しました：%s", err))
 	}
 }
 
 // <summary>: [Method] NONE に関する動作を定義します
 func actionNone(req models.WsRequest) {
-	logp := newLogParams()
+	logp := newLogParams(req.PlayerInfo.ConnId, req.ClientIP)
 	start := time.Now()
-
-	logp.ConnId = req.PlayerInfo.ConnId
-	logp.ClientIP = req.ClientIP
 
 	conn, ok := WsConnPool[req.PlayerInfo.ConnId]
 	if !ok {
 		logp.IsProcError = true
-		logp.Message = "<NONE> 送信されたconnection_idが不正です"
-		logp.log()
+		logp.log("<NONE> 送信されたconnection_idが不正です")
 
 		return
 	}
@@ -96,14 +84,10 @@ func actionNone(req models.WsRequest) {
 
 	if err := conn.WriteJSON(response); err == nil {
 		logp.Method = models.ParseMethod(response.Method)
-		logp.Message =
-			fmt.Sprintf("<NONE> 処理時間：%v, 送信完了：%+v", d, response)
-		logp.log()
+		logp.log(fmt.Sprintf("<NONE> 処理時間：%v, 送信完了：%+v", d, response))
 
 	} else {
 		logp.IsProcError = true
-		logp.Message =
-			fmt.Sprintf("<NONE> メッセージの送信に失敗しました：%s", err)
-		logp.log()
+		logp.log(fmt.Sprintf("<NONE> メッセージの送信に失敗しました：%s", err))
 	}
 }

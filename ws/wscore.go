@@ -2,6 +2,7 @@ package ws
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 
 	"bgtools-api/models"
@@ -12,16 +13,18 @@ import (
 
 // <summary>: Websocket接続時に行われる動作
 func EntryPoint(w http.ResponseWriter, r *http.Request) {
-	logp := newLogParams()
-	logp.ClientIP = r.RemoteAddr
-	logp.Message = "クライアントからの新規接続要求"
-	logp.log()
+	h, _, _ := net.SplitHostPort(r.RemoteAddr)
+	logp := logParams{
+		ClientIP:    h,
+		ConnId:      "",
+		Method:      models.NONE,
+		IsProcError: false,
+	}
 
 	conn, err := wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		logp.IsProcError = true
-		logp.Message = fmt.Sprintf("WebSocketのUpgradeに失敗しました：%s", err)
-		logp.log()
+		logp.log(fmt.Sprintf("WebSocketのUpgradeに失敗しました：%s", err))
 
 		return
 	}
@@ -42,14 +45,12 @@ func EntryPoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := conn.WriteJSON(res); err == nil {
-		logp.Message = fmt.Sprintf("<CONNECTED> 送信完了：%+v", res)
-		logp.log()
+		logp.log(fmt.Sprintf("<CONNECTED> 送信完了：%+v", res))
 
 	} else {
 		logp.IsProcError = true
-		logp.Message =
-			fmt.Sprintf("<CONNECTED> メッセージの送信に失敗しました：%s", err)
-		logp.log()
+		m := fmt.Sprintf("<CONNECTED> メッセージの送信に失敗しました：%s", err)
+		logp.log(m)
 	}
 
 	go readRequests(uuid_str, wsconn)
@@ -78,39 +79,29 @@ func ListenAndServe() {
 func readRequests(id string, conn *WsConnection) {
 	defer func() {
 		if r := recover(); r != nil {
-			elogp := newLogParams()
-			elogp.ClientIP = conn.RemoteAddr().String()
-			elogp.ConnId = id
+			elogp := newLogParams(id, conn.RemoteAddr())
+			elogp.IsProcError = true
 
 			deleteConnection(id)
-
-			elogp.IsProcError = true
-			elogp.Message = fmt.Sprintf("予期せぬエラーが発生しました：%s", r)
-			elogp.log()
+			elogp.log(fmt.Sprintf("予期せぬエラーが発生しました：%s", r))
 		}
 	}()
 
 	var req models.WsRequest
 
 	for {
-		logp := newLogParams()
-		logp.ClientIP = conn.RemoteAddr().String()
-		logp.ConnId = id
+		logp := newLogParams(id, conn.RemoteAddr())
 
 		if err := conn.ReadJSON(&req); err == nil {
-			req.ClientIP = conn.RemoteAddr().String()
-
+			req.ClientIP = conn.RemoteAddr()
 			logp.Method = models.ParseMethod(req.Method)
-			logp.Message = fmt.Sprintf("メッセージ受信：%+v", req)
-			logp.log()
+			logp.log(fmt.Sprintf("メッセージ受信：%+v", req))
 
 			chWsReq <- req
 
 		} else {
 			logp.IsProcError = true
-			logp.Message =
-				fmt.Sprintf("メッセージの受信に失敗しました：%s", err)
-			logp.log()
+			logp.log(fmt.Sprintf("メッセージの受信に失敗しました：%s", err))
 
 			// TODO: 他のCloseCodeのときはどうするか検討
 			// そもそもどういう状況でどんなCloseCodeになるか要調査
@@ -118,8 +109,7 @@ func readRequests(id string, conn *WsConnection) {
 				deleteConnection(id)
 
 				logp.IsProcError = false
-				logp.Message = "接続が切断されました"
-				logp.log()
+				logp.log("接続が切断されました")
 
 				break
 			}
@@ -154,4 +144,3 @@ func deleteConnection(id string) {
 
 	delete(WsConnPool, id)
 }
-

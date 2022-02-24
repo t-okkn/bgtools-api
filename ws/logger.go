@@ -5,7 +5,6 @@ import (
 	"io"
 	"net"
 	"os"
-	"strings"
 	"time"
 
 	"bgtools-api/models"
@@ -34,7 +33,6 @@ type logParams struct {
 	ConnId      string
 	Method      models.Method
 	IsProcError bool
-	Message     string
 }
 
 // <summary>: ログの色つけを有効化します
@@ -54,29 +52,25 @@ func ChangeOutputDestination(dest io.Writer) {
 }
 
 // <summary>: 新規logParams構造体を生成します
-func newLogParams() logParams {
+func newLogParams(id string, host net.Addr) logParams {
+	h, _, _ := net.SplitHostPort(host.String())
+
 	return logParams{
-		ClientIP:    "",
-		ConnId:      "",
+		ClientIP:    h,
+		ConnId:      id,
 		Method:      models.NONE,
 		IsProcError: false,
-		Message:     "",
 	}
 }
 
 // <summary>: logParamsの情報からログを書き込みます
-func (p logParams) log() {
+func (p logParams) log(message string) {
 	resetColor := reset
 	if !enableColorMode {
 		resetColor = ""
 	}
 
 	tag := "WS"
-	ip := p.ClientIP
-	if strings.Contains(ip, ":") {
-		ip, _, _ = net.SplitHostPort(ip)
-	}
-
 	var str string
 
 	if p.IsProcError {
@@ -90,19 +84,19 @@ func (p logParams) log() {
 		str = fmt.Sprintf("[%s] %v | %15s | %s | %s【処理エラー】%s %s",
 			tag,
 			time.Now().Format("2006/01/02 - 15:04:05"),
-			ip,
+			p.ClientIP,
 			p.ConnId,
-			redColor, resetColor, p.Message,
+			redColor, resetColor, message,
 		)
 
 	} else {
 		str = fmt.Sprintf("[%s] %v | %15s | %s |%s %-4s %s| %s",
 			tag,
 			time.Now().Format("2006/01/02 - 15:04:05"),
-			ip,
+			p.ClientIP,
 			p.ConnId,
 			p.methodColor(), p.Method.String(), resetColor,
-			p.Message,
+			message,
 		)
 	}
 
