@@ -3,6 +3,7 @@ package ws
 import (
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -73,7 +74,7 @@ func (p logParams) log() {
 	tag := "WS"
 	ip := p.ClientIP
 	if strings.Contains(ip, ":") {
-		ip = strings.Split(ip, ":")[0]
+		ip, _, _ = net.SplitHostPort(ip)
 	}
 
 	var str string
@@ -86,7 +87,7 @@ func (p logParams) log() {
 			redColor = ""
 		}
 
-		str = fmt.Sprintf("[%s] %v | %15s | %s | %s【処理エラー】%s%s",
+		str = fmt.Sprintf("[%s] %v | %15s | %s | %s【処理エラー】%s %s",
 			tag,
 			time.Now().Format("2006/01/02 - 15:04:05"),
 			ip,
@@ -95,7 +96,7 @@ func (p logParams) log() {
 		)
 
 	} else {
-		str = fmt.Sprintf("[%s] %v | %15s | %s |%s %-10s %s| %s",
+		str = fmt.Sprintf("[%s] %v | %15s | %s |%s %-4s %s| %s",
 			tag,
 			time.Now().Format("2006/01/02 - 15:04:05"),
 			ip,
