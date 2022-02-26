@@ -11,6 +11,28 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type WsConnection struct {
+	*websocket.Conn
+}
+
+var (
+	wsUpgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin:     func(r *http.Request) bool {
+			return true
+		},
+	}
+
+	chWsReq = make(chan models.WsRequest)
+
+	// <summary>: 接続情報のプール
+	WsConnPool = map[string]*WsConnection{}
+
+	// <summary>: 部屋情報のプール
+	RoomPool = map[string]models.RoomInfoSet{}
+)
+
 // <summary>: Websocket接続時に行われる動作
 func EntryPoint(w http.ResponseWriter, r *http.Request) {
 	h, _, _ := net.SplitHostPort(r.RemoteAddr)
@@ -49,8 +71,8 @@ func EntryPoint(w http.ResponseWriter, r *http.Request) {
 
 	} else {
 		logp.IsProcError = true
-		m := fmt.Sprintf("<CONNECTED> メッセージの送信に失敗しました：%s", err)
-		logp.log(m)
+		logp.log(fmt.Sprintf(
+			"<CONNECTED> メッセージの送信に失敗しました：%s", err))
 	}
 
 	go readRequests(uuid_str, wsconn)
