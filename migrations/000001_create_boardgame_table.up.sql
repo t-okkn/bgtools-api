@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS `M_BOARDGAME` (
+  `id` VARCHAR(8) NOT NULL PRIMARY KEY,
+  `unique_name` VARCHAR(256) NOT NULL DEFAULT '',
+  `title` VARCHAR(2048) NOT NULL DEFAULT '',
+  `min_players` TINYINT UNSIGNED NOT NULL DEFAULT '0',
+  `max_players` TINYINT UNSIGNED NOT NULL DEFAULT '0',
+  `playing_time` VARCHAR(7) NOT NULL DEFAULT '',
+  `min_age` TINYINT UNSIGNED NOT NULL DEFAULT '0',
+  `is_expansion` BIT(1) NOT NULL DEFAULT b'0',
+  `expansion_base_id` VARCHAR(8) NOT NULL DEFAULT '',
+  `product_url` VARCHAR(2048) NOT NULL DEFAULT '',
+  `bodoge_hoobby_net` BIT(1) NOT NULL DEFAULT b'0',
+  `score_tool` BIT(1) NOT NULL DEFAULT b'0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

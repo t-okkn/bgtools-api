@@ -24,7 +24,7 @@ func actionCreateRoom(req models.WsRequest) {
 	_, exsit := RoomPool[req.PlayerInfo.RoomId]
 
 	if !exsit {
-		data := models.BGCollection[req.PlayerInfo.GameId]
+		data := models.BgScore[req.PlayerInfo.GameId]
 
 		players := make(map[string]string, data.MaxPlayers)
 		players[req.PlayerInfo.ConnId] = req.PlayerInfo.PlayerColor

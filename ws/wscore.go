@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 
+	"bgtools-api/db"
 	"bgtools-api/models"
 
 	"github.com/google/uuid"
@@ -31,6 +32,9 @@ var (
 
 	// <summary>: 部屋情報のプール
 	RoomPool = map[string]models.RoomInfoSet{}
+
+	// <summary>: DB接続のコネクションプール
+	BgRepo *db.BgRepository
 )
 
 // <summary>: Websocket接続時に行われる動作

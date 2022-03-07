@@ -53,12 +53,20 @@ type CheckRoomResult struct {
 	GameId  string `json:"game_id"`
 }
 
+// <summary>: スコアツール対応のボードゲームデータを格納します
+type BgPartialData struct {
+	Title      string   `json:"title"`
+	MinPlayers int      `json:"min_players"`
+	MaxPlayers int      `json:"max_players"`
+	Colors     []string `json:"colors"`
+}
+
 // <summary>: 接続情報を一覧表示するための構造体
 type ConnectionSummary struct {
 	ConnId       string            `json:"connection_id"`
 	RoomId       string            `json:"room_id"`
 	GameId       string            `json:"game_id"`
-	GameData     BoardgameData     `json:"gama_data"`
+	GameData     BgPartialData     `json:"gama_data"`
 	PlayerColor  string            `json:"player_color"`
 	OtherPlayers map[string]string `json:"other_players"`
 }
@@ -67,6 +75,6 @@ type ConnectionSummary struct {
 type RoomSummary struct {
 	RoomId   string            `json:"room_id"`
 	GameId   string            `json:"game_id"`
-	GameData BoardgameData     `json:"gama_data"`
+	GameData BgPartialData     `json:"gama_data"`
 	Players  map[string]string `json:"players"`
 }

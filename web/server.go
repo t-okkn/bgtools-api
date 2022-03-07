@@ -1,12 +1,17 @@
 package web
 
 import (
+	"database/sql"
+	"fmt"
 	"net/http"
 
+	"bgtools-api/db"
 	"bgtools-api/models"
 	"bgtools-api/ws"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-gorp/gorp"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 // <summary>: 待ち受けるサーバのルーターを定義します
@@ -17,8 +22,8 @@ func SetupRouter() *gin.Engine {
 
 	v1.GET("/entry", wsEntry)
 	v1.GET("/check/rooms/:roomId", checkRoom)
-	v1.GET("/boardgames", getBoardgames)
-	v1.GET("/boardgames/:gameId", getBoardgames)
+	v1.GET("/score/boardgames", getScoreSupported)
+	v1.GET("/score/boardgames/:gameId", getScoreSupported)
 
 	stat := v1.Group("statistics")
 
@@ -26,6 +31,17 @@ func SetupRouter() *gin.Engine {
 	stat.GET("/rooms/:roomId", getRooms)
 	stat.GET("/connections", getConnections)
 	stat.GET("/connections/:connId", getConnections)
+
+	r, err := initDB()
+	if err != nil {
+		fmt.Printf("initDB: %v\n", err)
+	}
+
+	if err := db.LoadBgDataForScore(r); err != nil {
+		fmt.Printf("LoadBgData: %v\n", err)
+	}
+
+	ws.BgRepo = r
 
 	return router
 }
@@ -54,17 +70,17 @@ func checkRoom(c *gin.Context) {
 }
 
 // <summary>: ボードゲーム情報を取得します
-func getBoardgames(c *gin.Context) {
+func getScoreSupported(c *gin.Context) {
 	gameid := c.Param("gameId")
 
 	if gameid == "" {
-		c.JSON(http.StatusOK, models.BGCollection)
+		c.JSON(http.StatusOK, models.BgScore)
 
 	} else {
-		data, ok := models.BGCollection[gameid]
+		data, ok := models.BgScore[gameid]
 
 		if ok {
-			res := make(map[string]models.BoardgameData, 1)
+			res := make(map[string]models.BgPartialData, 1)
 			res[gameid] = data
 
 			c.JSON(http.StatusOK, res)
@@ -86,7 +102,7 @@ func getRooms(c *gin.Context) {
 		rs := models.RoomSummary{
 			RoomId:   id,
 			GameId:   gameid,
-			GameData: models.BGCollection[gameid],
+			GameData: models.BgScore[gameid],
 			Players:  room.Players,
 		}
 
@@ -125,10 +141,11 @@ func getConnections(c *gin.Context) {
 			GameId:       "",
 			PlayerColor:  "",
 			OtherPlayers: map[string]string{},
-			GameData:     models.BoardgameData{
-				Title: "",
+			GameData: models.BgPartialData{
+				Title:      "",
 				MinPlayers: -1,
 				MaxPlayers: -1,
+				Colors:     []string{""},
 			},
 		}
 	}
@@ -160,7 +177,7 @@ func getConnections(c *gin.Context) {
 					ConnId:       cid,
 					RoomId:       roomid,
 					GameId:       gameid,
-					GameData:     models.BGCollection[gameid],
+					GameData:     models.BgScore[gameid],
 					PlayerColor:  color,
 					OtherPlayers: other,
 				}
@@ -201,7 +218,7 @@ func getConnections(c *gin.Context) {
 						ConnId:      cid,
 						RoomId:      roomid,
 						GameId:      gameid,
-						GameData:    models.BGCollection[gameid],
+						GameData:    models.BgScore[gameid],
 						PlayerColor: color,
 					}
 
@@ -223,4 +240,37 @@ func getConnections(c *gin.Context) {
 		res := []models.ConnectionSummary{cs}
 		c.JSON(http.StatusOK, res)
 	}
+}
+
+// <summary>: DBとの接続についての初期処理
+func initDB() (*db.BgRepository, error) {
+	driver, dsn, err := db.GetDataSourceName()
+	if err != nil {
+		return nil, err
+	}
+
+	var dbmap *gorp.DbMap
+
+	switch driver {
+	case "mysql":
+		op, err := sql.Open(driver, dsn)
+		if err != nil {
+			return nil, err
+		}
+
+		dial := gorp.MySQLDialect{
+			Engine:   "InnoDB",
+			Encoding: "utf8mb4",
+		}
+
+		dbmap = &gorp.DbMap{
+			Db:              op,
+			Dialect:         dial,
+			ExpandSliceArgs: true,
+		}
+
+		models.MapStructsToTables(dbmap)
+	}
+
+	return db.NewRepository(dbmap), nil
 }

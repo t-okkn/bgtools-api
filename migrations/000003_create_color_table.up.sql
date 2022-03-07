@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS `M_COLOR` (
+  `game_id` VARCHAR(8) NOT NULL DEFAULT '',
+  `color` VARCHAR(16) NOT NULL DEFAULT '',
+  UNIQUE id_color (`game_id`, `color`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
