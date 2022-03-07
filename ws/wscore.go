@@ -57,16 +57,16 @@ func EntryPoint(w http.ResponseWriter, r *http.Request) {
 
 	wsconn := &WsConnection{conn}
 	obj, _ := uuid.NewRandom()
-	uuid_str := obj.String()
+	connid := fmt.Sprintf("ws.%s", obj.String())
 
-	WsConnPool[uuid_str] = wsconn
-	logp.ConnId = uuid_str
+	WsConnPool[connid] = wsconn
+	logp.ConnId = connid
 	logp.Method = models.CONNCTED
 
 	res := models.WsResponse{
 		Method: models.CONNCTED.String(),
 		Params: models.ConnectedResponse{
-			ConnId: uuid_str,
+			ConnId: connid,
 		},
 	}
 
@@ -79,7 +79,7 @@ func EntryPoint(w http.ResponseWriter, r *http.Request) {
 			"<CONNECTED> メッセージの送信に失敗しました：%s", err))
 	}
 
-	go readRequests(uuid_str, wsconn)
+	go readRequests(connid, wsconn)
 }
 
 // <summary>: Websocketでの電文のやり取りを行います
