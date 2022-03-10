@@ -7,7 +7,7 @@ var ErrRoomNotFound = ErrorMessage{
 }
 
 // <summary>: 【エラー】対象の接続が存在しません
-var ErrTargetConnectionNotFound = ErrorMessage{
+var ErrConnectionNotFound = ErrorMessage{
 	Error: "E002",
 	Message: "指定された接続元は存在しません",
 }

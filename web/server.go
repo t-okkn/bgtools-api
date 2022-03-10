@@ -65,7 +65,7 @@ func wsEntry(c *gin.Context) {
 func checkRoom(c *gin.Context) {
 	roomid := c.Param("roomId")
 
-	info, exsit := ws.RoomPool[roomid]
+	info, exsit := ws.RoomPool.Get(roomid)
 
 	rv := models.CheckRoomResult{
 		IsExsit: exsit,
@@ -104,7 +104,7 @@ func getScoreSupported(c *gin.Context) {
 // <summary>: 部屋情報を取得します
 func getRooms(c *gin.Context) {
 	roomid := c.Param("roomId")
-	summary := make([]models.RoomSummary, 0, len(ws.RoomPool))
+	summary := make([]models.RoomSummary, 0, ws.RoomPool.Count())
 
 	pack := func(id string, room models.RoomInfoSet) {
 		gameid := room.GameId
@@ -120,12 +120,10 @@ func getRooms(c *gin.Context) {
 	}
 
 	if roomid == "" {
-		for id, room := range ws.RoomPool {
-			pack(id, room)
-		}
+		ws.RoomPool.Range(pack)
 
 	} else {
-		room, exsit := ws.RoomPool[roomid]
+		room, exsit := ws.RoomPool.Get(roomid)
 
 		if exsit {
 			pack(roomid, room)
@@ -142,7 +140,7 @@ func getRooms(c *gin.Context) {
 // <summary>: 接続情報を取得します
 func getConnections(c *gin.Context) {
 	connid := c.Param("connId")
-	summary := make([]models.ConnectionSummary, 0, len(ws.WsConnPool))
+	summary := make([]models.ConnectionSummary, 0, ws.ConnPool.Count())
 
 	empty := func(id string) models.ConnectionSummary {
 		return models.ConnectionSummary{
@@ -161,15 +159,11 @@ func getConnections(c *gin.Context) {
 	}
 
 	if connid == "" {
-		conns := make(map[string]struct{}, len(ws.WsConnPool))
+		conn_keys := ws.ConnPool.GetKeys()
 
-		for key := range ws.WsConnPool {
-			conns[key] = struct{}{}
-		}
-
-		for roomid, room := range ws.RoomPool {
+		inner := func(roomid string, room models.RoomInfoSet) {
 			for _, player := range room.Players {
-				_, ok := conns[player.ConnId]
+				_, ok := conn_keys[player.ConnId]
 				if !ok {
 					continue
 				}
@@ -192,13 +186,15 @@ func getConnections(c *gin.Context) {
 					OtherPlayers: other,
 				}
 
-				delete(conns, player.ConnId)
+				delete(conn_keys, player.ConnId)
 				summary = append(summary, cs)
 			}
 		}
 
-		if len(conns) != 0 {
-			for key := range conns {
+		ws.RoomPool.Range(inner)
+
+		if len(conn_keys) != 0 {
+			for key := range conn_keys {
 				cs := empty(key)
 				summary = append(summary, cs)
 			}
@@ -207,16 +203,15 @@ func getConnections(c *gin.Context) {
 		c.JSON(http.StatusOK, summary)
 
 	} else {
-		_, exsit := ws.WsConnPool[connid]
-		if !exsit {
-			c.JSON(http.StatusBadRequest, models.ErrTargetConnectionNotFound)
+		if _, exsit := ws.ConnPool.Get(connid); !exsit {
+			c.JSON(http.StatusBadRequest, models.ErrConnectionNotFound)
 			return
 		}
 
 		found := false
 		var cs models.ConnectionSummary
 
-		for roomid, room := range ws.RoomPool {
+		inner := func(roomid string, room models.RoomInfoSet) {
 			other := make([]models.PlayerInfoSet, 0, len(room.Players))
 
 			for _, player := range room.Players {
@@ -239,9 +234,11 @@ func getConnections(c *gin.Context) {
 
 			if found {
 				cs.OtherPlayers = other
-				break
+				return
 			}
 		}
+
+		ws.RoomPool.Range(inner)
 
 		if !found {
 			cs = empty(connid)

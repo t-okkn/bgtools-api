@@ -29,10 +29,13 @@ var (
 	chWsReq = make(chan models.WsRequest)
 
 	// <summary>: 接続情報のプール
-	WsConnPool = map[string]*WsConnection{}
+	ConnPool = NewConnMap()
 
 	// <summary>: 部屋情報のプール
-	RoomPool = map[string]models.RoomInfoSet{}
+	RoomPool = NewRoomMap()
+
+	// <summary>: Player情報のプール
+	PlayerPool = NewPlayerMap()
 )
 
 // <summary>: WebSocket接続時に行われる動作
@@ -57,7 +60,7 @@ func EntryPoint(w http.ResponseWriter, r *http.Request) {
 	obj, _ := uuid.NewRandom()
 	connid := fmt.Sprintf("ws.%s", obj.String())
 
-	WsConnPool[connid] = wsconn
+	ConnPool.Set(connid, wsconn)
 	logp.ConnId = connid
 	logp.Method = models.CONNECT
 
@@ -150,7 +153,7 @@ func readRequests(id string, conn *WsConnection) {
 // <summary>: 接続情報を削除します
 func deleteConnection(id string) (notify string) {
 	notify = deletePlayerInfo(id)
-	delete(WsConnPool, id)
+	ConnPool.Delete(id)
 	return
 }
 
@@ -160,8 +163,7 @@ func deletePlayerInfo(id string) (notify string) {
 	check := ""
 	pos := 0
 
-	// TODO: RoomPoolのロック制御しないと、非同期で読み書きし放題は・・・
-	for roomid, room := range RoomPool {
+	inner := func(roomid string, room models.RoomInfoSet) {
 		for i, player := range room.Players {
 			if player.ConnId == id {
 				check = roomid
@@ -171,24 +173,26 @@ func deletePlayerInfo(id string) (notify string) {
 		}
 
 		if check != "" {
-			break
+			return
 		}
 	}
+
+	RoomPool.Range(inner)
 
 	if check == "" {
 		return
 	}
 
-	room := RoomPool[check]
+	room, _ := RoomPool.Get(check)
 
 	if len(room.Players) <= 1 {
-		delete(RoomPool, check)
+		RoomPool.Delete(check)
 
 	} else {
 		room.Players[pos] = room.Players[len(room.Players)-1]
 		room.Players = room.Players[:len(room.Players)-1]
 
-		RoomPool[check] = room
+		RoomPool.Set(check, room)
 		notify = check
 	}
 
@@ -201,7 +205,7 @@ func notifyOtherPlayers(roomid string) {
 		return
 	}
 
-	room, exist := RoomPool[roomid]
+	room, exist := RoomPool.Get(roomid)
 	if !exist {
 		return
 	}
@@ -217,7 +221,7 @@ func notifyOtherPlayers(roomid string) {
 	}
 
 	for _, p := range room.Players {
-		conn, ex := WsConnPool[p.ConnId]
+		conn, ex := ConnPool.Get(p.ConnId)
 		if !ex {
 			continue
 		}
