@@ -37,6 +37,11 @@ type tlsInfo struct {
 	Key       string `toml:"key"`
 }
 
+var (
+	// <summary>: DB接続のコネクションプール
+	BgRepo *BgRepository
+)
+
 
 func GetDataSourceName() (string, string, error) {
 	dir := getDirName()

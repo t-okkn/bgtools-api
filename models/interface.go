@@ -2,29 +2,30 @@ package models
 
 import "net"
 
-// <summary>: 接続元プレーヤーの固有情報
+// <summary>: プレーヤーの情報
 type PlayerInfoSet struct {
-	RoomId      string `json:"room_id"`
-	GameId      string `json:"game_id"`
-	PlayerColor string `json:"player_color"`
 	ConnId      string `json:"connection_id"`
+	PlayerColor string `json:"player_color"`
 }
 
 // <summary>: 部屋のゲーム内容と部屋にいるプレーヤー情報
 type RoomInfoSet struct {
-	GameId  string            `json:"game_id"`
-	Players map[string]string `json:"players"`
+	GameId  string          `json:"game_id"`
+	Players []PlayerInfoSet `json:"players"`
 }
 
-// <summary>: WebSocketsでの受信用データの構造体
+// <summary>: WebSocketでの受信用データの構造体
 type WsRequest struct {
-	Method     string        `json:"method"`
-	PlayerInfo PlayerInfoSet `json:"player"`
-	Points     []int         `json:"points"`
-	ClientIP   net.Addr      `json:"-"`
+	Method      string   `json:"method"`
+	ConnId      string   `json:"connection_id"`
+	RoomId      string   `json:"room_id"`
+	GameId      string   `json:"game_id"`
+	PlayerColor string   `json:"player_color"`
+	Points      []int    `json:"points"`
+	ClientIP    net.Addr `json:"-"`
 }
 
-// <summary>: WebSocketsからの返却用データの構造体
+// <summary>: WebSocketからの返却用データの構造体
 type WsResponse struct {
 	Method string      `json:"method"`
 	Params interface{} `json:"params"`
@@ -35,10 +36,16 @@ type ConnectedResponse struct {
 	ConnId string `json:"connection_id"`
 }
 
-// <summary>: 部屋へ接続をしに来た時、Response内のParamsに使用される構造体
+// <summary>: 部屋の情報伝達時、Response内のParamsに使用される構造体
 type RoomResponse struct {
 	IsWait   bool        `json:"is_wait"`
 	RoomInfo RoomInfoSet `json:"room"`
+}
+
+// <summary>: 得点のブロードキャスト時、Response内のParamsに使用される構造体
+type PointResponse struct {
+	Player PlayerInfoSet `json:"player"`
+	Points []int         `json:"points"`
 }
 
 // <summary>: エラーに関する情報を格納する構造体
@@ -63,18 +70,18 @@ type BgPartialData struct {
 
 // <summary>: 接続情報を一覧表示するための構造体
 type ConnectionSummary struct {
-	ConnId       string            `json:"connection_id"`
-	RoomId       string            `json:"room_id"`
-	GameId       string            `json:"game_id"`
-	GameData     BgPartialData     `json:"gama_data"`
-	PlayerColor  string            `json:"player_color"`
-	OtherPlayers map[string]string `json:"other_players"`
+	ConnId       string          `json:"connection_id"`
+	RoomId       string          `json:"room_id"`
+	GameId       string          `json:"game_id"`
+	GameData     BgPartialData   `json:"gama_data"`
+	PlayerColor  string          `json:"player_color"`
+	OtherPlayers []PlayerInfoSet `json:"other_players"`
 }
 
 // <summary>: 部屋情報を一覧表示するための構造体
 type RoomSummary struct {
-	RoomId   string            `json:"room_id"`
-	GameId   string            `json:"game_id"`
-	GameData BgPartialData     `json:"gama_data"`
-	Players  map[string]string `json:"players"`
+	RoomId   string          `json:"room_id"`
+	GameId   string          `json:"game_id"`
+	GameData BgPartialData   `json:"gama_data"`
+	Players  []PlayerInfoSet `json:"players"`
 }

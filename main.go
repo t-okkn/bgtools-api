@@ -24,7 +24,7 @@ func main() {
 		return
 	}
 
-	go ws.ListenAndServe()
+	go ws.ServeRequest()
 
 	web.SetupRouter().Run(LISTEN_PORT)
 }

@@ -27,7 +27,7 @@ var (
 	outputDestination io.Writer = os.Stdout
 )
 
-// <summary>: Websocket用ログのパラメータを示す構造体
+// <summary>: WebSocket用ログのパラメータを示す構造体
 type logParams struct {
 	ClientIP    string
 	ConnId      string
@@ -110,17 +110,26 @@ func (p logParams) methodColor() string {
 	}
 
 	switch p.Method {
-	case models.CREATE_ROOM:
+	case models.CREATE:
 		return blue
 
-	case models.JOIN_ROOM:
+	case models.JOIN:
 		return cyan
+
+	case models.LEAVE:
+		return magenta
 
 	case models.BROADCAST:
 		return yellow
 
-	case models.CONNCTED:
+	case models.CONNECT:
 		return bgreen
+
+	case models.EJECT:
+		return magenta
+
+	case models.NOTIFY:
+		return yellow
 
 	case models.OK:
 		return green
@@ -131,9 +140,4 @@ func (p logParams) methodColor() string {
 	default:
 		return white
 	}
-}
-
-// <summary>: 処理にかかった時間を文字列で取得します
-func getProcTime(start time.Time) string {
-	return fmt.Sprintf("%v", time.Since(start))
 }

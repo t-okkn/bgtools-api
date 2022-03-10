@@ -20,17 +20,27 @@ func SetupRouter() *gin.Engine {
 	router := gin.Default()
 	v1 := router.Group("v1")
 
-	v1.GET("/entry", wsEntry)
-	v1.GET("/check/rooms/:roomId", checkRoom)
-	v1.GET("/score/boardgames", getScoreSupported)
-	v1.GET("/score/boardgames/:gameId", getScoreSupported)
+	//v1.GET("/boardgames", getBoardgames)
+	//v1.GET("/boardgames/:gameId", getBoardgames)
 
-	stat := v1.Group("statistics")
+	score := v1.Group("score")
+
+	score.GET("/entry", wsEntry)
+	score.GET("/rooms/:roomId", checkRoom)
+	score.GET("/boardgames", getScoreSupported)
+	score.GET("/boardgames/:gameId", getScoreSupported)
+
+	stat := score.Group("statistics")
 
 	stat.GET("/rooms", getRooms)
 	stat.GET("/rooms/:roomId", getRooms)
 	stat.GET("/connections", getConnections)
 	stat.GET("/connections/:connId", getConnections)
+
+	//admin := v1.Group("admin")
+
+	//admin.POST("/boardgames", setBoardgames)
+	//admin.PUT("/boardgames/:gameId", updateBoardgames)
 
 	r, err := initDB()
 	if err != nil {
@@ -41,7 +51,7 @@ func SetupRouter() *gin.Engine {
 		fmt.Printf("LoadBgData: %v\n", err)
 	}
 
-	ws.BgRepo = r
+	db.BgRepo = r
 
 	return router
 }
@@ -140,12 +150,12 @@ func getConnections(c *gin.Context) {
 			RoomId:       "",
 			GameId:       "",
 			PlayerColor:  "",
-			OtherPlayers: map[string]string{},
+			OtherPlayers: []models.PlayerInfoSet{},
 			GameData: models.BgPartialData{
 				Title:      "",
-				MinPlayers: -1,
-				MaxPlayers: -1,
-				Colors:     []string{""},
+				MinPlayers: 0,
+				MaxPlayers: 0,
+				Colors:     []string{},
 			},
 		}
 	}
@@ -158,31 +168,31 @@ func getConnections(c *gin.Context) {
 		}
 
 		for roomid, room := range ws.RoomPool {
-			for cid, color := range room.Players {
-				_, ok := conns[cid]
+			for _, player := range room.Players {
+				_, ok := conns[player.ConnId]
 				if !ok {
 					continue
 				}
 
 				gameid := room.GameId
-				other := make(map[string]string, len(room.Players))
+				other := make([]models.PlayerInfoSet, 0, len(room.Players))
 
-				for in_cid, in_color := range room.Players {
-					if cid != in_cid {
-						other[in_cid] = in_color
+				for _, in_player := range room.Players {
+					if player.ConnId != in_player.ConnId {
+						other = append(other, in_player)
 					}
 				}
 
 				cs := models.ConnectionSummary{
-					ConnId:       cid,
+					ConnId:       player.ConnId,
 					RoomId:       roomid,
 					GameId:       gameid,
 					GameData:     models.BgScore[gameid],
-					PlayerColor:  color,
+					PlayerColor:  player.PlayerColor,
 					OtherPlayers: other,
 				}
 
-				delete(conns, cid)
+				delete(conns, player.ConnId)
 				summary = append(summary, cs)
 			}
 		}
@@ -207,23 +217,23 @@ func getConnections(c *gin.Context) {
 		var cs models.ConnectionSummary
 
 		for roomid, room := range ws.RoomPool {
-			other := make(map[string]string, len(room.Players))
+			other := make([]models.PlayerInfoSet, 0, len(room.Players))
 
-			for cid, color := range room.Players {
-				if connid == cid {
+			for _, player := range room.Players {
+				if connid == player.ConnId {
 					found = true
 					gameid := room.GameId
 
 					cs = models.ConnectionSummary{
-						ConnId:      cid,
+						ConnId:      player.ConnId,
 						RoomId:      roomid,
 						GameId:      gameid,
 						GameData:    models.BgScore[gameid],
-						PlayerColor: color,
+						PlayerColor: player.PlayerColor,
 					}
 
 				} else {
-					other[cid] = color
+					other = append(other, player)
 				}
 			}
 

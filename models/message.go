@@ -18,6 +18,12 @@ var ErrBoardgameNotFound = ErrorMessage{
 	Message: "指定されたボードゲームは存在しません",
 }
 
+// <summary>: 【エラー】部屋の中に入室していません
+var ErrNotInRoom = ErrorMessage{
+	Error: "E004",
+	Message: "指定された部屋にまだ入室していません",
+}
+
 // <summary>: 【エラー】無効なメソッド
 var ErrInvalidMethod = ErrorMessage{
 	Error: "E101",
@@ -28,4 +34,22 @@ var ErrInvalidMethod = ErrorMessage{
 var ErrRoomExisted = ErrorMessage{
 	Error: "E201",
 	Message: "指定された部屋は既に存在しています",
+}
+
+// <summary>: 【エラー】部屋のゲーム内容に誤りがある
+var ErrMismatchGame = ErrorMessage{
+	Error: "E202",
+	Message: "指定された部屋のゲーム内容が違います",
+}
+
+// <summary>: 【エラー】部屋に同一の接続元からインしようとしている
+var ErrConnectionDuplicated = ErrorMessage{
+	Error: "E203",
+	Message: "指定された部屋には既に同一接続元から入室しています",
+}
+
+// <summary>: 【エラー】部屋に同じ色のプレイヤーが参加しようとしている
+var ErrColorDuplicated = ErrorMessage{
+	Error: "E204",
+	Message: "指定された部屋には既に同色プレイヤーが入室しています",
 }

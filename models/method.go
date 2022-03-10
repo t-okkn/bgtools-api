@@ -5,14 +5,17 @@ import "strings"
 type Method string
 
 const (
-	NONE        Method = "NONE"
-	BROADCAST   Method = "BRDC"
-	CREATE_ROOM Method = "CRRM"
-	JOIN_ROOM   Method = "JNRM"
+	BROADCAST  Method = "BRDC"
+	CREATE     Method = "CRET"
+	JOIN       Method = "JOIN"
+	LEAVE      Method = "LEAV"
 
-	CONNCTED Method = "CONN"
-	OK       Method = "OK"
-	ERROR    Method = "ERR"
+	NONE    Method = "NONE"
+	CONNECT Method = "CONN"
+	EJECT   Method = "EJCT"
+	NOTIFY  Method = "NTFY"
+	OK      Method = "OK"
+	ERROR   Method = "ERR"
 )
 
 // <summary>: Methodを文字列として表現します
@@ -22,23 +25,32 @@ func (m Method) String() string {
 
 // <summary>: 文字列をMethodとして表現します
 func ParseMethod(s string) (m Method) {
-	switch strings.ToLower(s) {
-	case "brdc":
+	switch strings.ToUpper(s) {
+	case "BRDC":
 		m = BROADCAST
 
-	case "crrm":
-		m = CREATE_ROOM
+	case "CRET":
+		m = CREATE
 
-	case "jnrm":
-		m = JOIN_ROOM
+	case "JOIN":
+		m = JOIN
 
-	case "conn":
-		m = CONNCTED
+	case "LEAV":
+		m = LEAVE
 
-	case "ok":
+	case "CONN":
+		m = CONNECT
+
+	case "EJCT":
+		m = EJECT
+
+	case "NTFY":
+		m = NOTIFY
+
+	case "OK":
 		m = OK
 
-	case "err":
+	case "ERR":
 		m = ERROR
 
 	default:
