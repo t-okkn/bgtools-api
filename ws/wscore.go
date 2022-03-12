@@ -139,6 +139,7 @@ func readRequests(id string, pc PlayerConn) {
 			// TODO: 他のCloseCodeのときはどうするか検討
 			// そもそもどういう状況でどんなCloseCodeになるか要調査
 			if websocket.IsCloseError(err, websocket.CloseNoStatusReceived) {
+				logp.Method = models.DISCONNECT
 				logp.Prefix = "[close-1005]"
 				logp.log("NoStatusReceived: 接続が切断されました")
 

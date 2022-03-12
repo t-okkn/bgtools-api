@@ -96,7 +96,7 @@ func (p logParams) log(message string) {
 			prefix = ""
 		}
 
-		str = fmt.Sprintf("[%s] %v | %15s | %s |%s %-4s %s| %s%s",
+		str = fmt.Sprintf("[%s] %v | %15s | %s |%s %-10s %s| %s%s",
 			tag,
 			time.Now().Format("2006/01/02 - 15:04:05"),
 			p.ClientIP,
@@ -131,6 +131,9 @@ func (p logParams) methodColor() string {
 
 	case models.CONNECT:
 		return bgreen
+
+	case models.DISCONNECT:
+		return magenta
 
 	case models.EJECT:
 		return magenta

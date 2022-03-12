@@ -5,17 +5,18 @@ import "strings"
 type Method string
 
 const (
-	BROADCAST  Method = "BRDC"
-	CREATE     Method = "CRET"
-	JOIN       Method = "JOIN"
-	LEAVE      Method = "LEAV"
+	BROADCAST Method = "BROADCAST"
+	CREATE    Method = "CREATE"
+	JOIN      Method = "JOIN"
+	LEAVE     Method = "LEAVE"
 
-	NONE    Method = "NONE"
-	CONNECT Method = "CONN"
-	EJECT   Method = "EJCT"
-	NOTIFY  Method = "NTFY"
-	OK      Method = "OK"
-	ERROR   Method = "ERR"
+	NONE       Method = "NONE"
+	CONNECT    Method = "CONNECT"
+	DISCONNECT Method = "DISCONNECT"
+	EJECT      Method = "EJECT"
+	NOTIFY     Method = "NOTIFY"
+	OK         Method = "OK"
+	ERROR      Method = "ERROR"
 )
 
 // <summary>: Methodを文字列として表現します
@@ -26,31 +27,34 @@ func (m Method) String() string {
 // <summary>: 文字列をMethodとして表現します
 func ParseMethod(s string) (m Method) {
 	switch strings.ToUpper(s) {
-	case "BRDC":
+	case "BROADCAST":
 		m = BROADCAST
 
-	case "CRET":
+	case "CREATE":
 		m = CREATE
 
 	case "JOIN":
 		m = JOIN
 
-	case "LEAV":
+	case "LEAVE":
 		m = LEAVE
 
-	case "CONN":
+	case "CONNECT":
 		m = CONNECT
 
-	case "EJCT":
+	case "DISCONNECT":
+		m = DISCONNECT
+
+	case "EJECT":
 		m = EJECT
 
-	case "NTFY":
+	case "NOTIFY":
 		m = NOTIFY
 
 	case "OK":
 		m = OK
 
-	case "ERR":
+	case "ERROR":
 		m = ERROR
 
 	default:
