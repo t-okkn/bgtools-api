@@ -65,14 +65,14 @@ func wsEntry(c *gin.Context) {
 func checkRoom(c *gin.Context) {
 	roomid := c.Param("roomId")
 
-	info, exsit := ws.RoomPool.Get(roomid)
+	info, exist := ws.RoomPool.Get(roomid)
 
 	rv := models.CheckRoomResult{
-		IsExsit: exsit,
+		IsExist: exist,
 		GameId:  "",
 	}
 
-	if exsit {
+	if exist {
 		rv.GameId = info.GameId
 	}
 
@@ -123,9 +123,9 @@ func getRooms(c *gin.Context) {
 		ws.RoomPool.Range(pack)
 
 	} else {
-		room, exsit := ws.RoomPool.Get(roomid)
+		room, exist := ws.RoomPool.Get(roomid)
 
-		if exsit {
+		if exist {
 			pack(roomid, room)
 
 		} else {
@@ -140,7 +140,7 @@ func getRooms(c *gin.Context) {
 // <summary>: 接続情報を取得します
 func getConnections(c *gin.Context) {
 	connid := c.Param("connId")
-	summary := make([]models.ConnectionSummary, 0, ws.ConnPool.Count())
+	summary := make([]models.ConnectionSummary, 0, ws.PlayerPool.Count())
 
 	empty := func(id string) models.ConnectionSummary {
 		return models.ConnectionSummary{
@@ -159,92 +159,91 @@ func getConnections(c *gin.Context) {
 	}
 
 	if connid == "" {
-		conn_keys := ws.ConnPool.GetKeys()
+		data := ws.PlayerPool.PlayerRoomData()
 
-		inner := func(roomid string, room models.RoomInfoSet) {
+		for cid, roomid := range data {
+			if roomid == "" {
+				summary = append(summary, empty(cid))
+				continue
+			}
+
+			room, ok := ws.RoomPool.Get(roomid)
+
+			if !ok {
+				summary = append(summary, empty(cid))
+				continue
+			}
+
+			pcol := ""
+			other := make([]models.PlayerInfoSet, 0, len(room.Players))
+
 			for _, player := range room.Players {
-				_, ok := conn_keys[player.ConnId]
-				if !ok {
-					continue
+				if player.ConnId != cid {
+					other = append(other, player)
+				} else {
+					pcol = player.PlayerColor
 				}
-
-				gameid := room.GameId
-				other := make([]models.PlayerInfoSet, 0, len(room.Players))
-
-				for _, in_player := range room.Players {
-					if player.ConnId != in_player.ConnId {
-						other = append(other, in_player)
-					}
-				}
-
-				cs := models.ConnectionSummary{
-					ConnId:       player.ConnId,
-					RoomId:       roomid,
-					GameId:       gameid,
-					GameData:     models.BgScore[gameid],
-					PlayerColor:  player.PlayerColor,
-					OtherPlayers: other,
-				}
-
-				delete(conn_keys, player.ConnId)
-				summary = append(summary, cs)
 			}
-		}
 
-		ws.RoomPool.Range(inner)
-
-		if len(conn_keys) != 0 {
-			for key := range conn_keys {
-				cs := empty(key)
-				summary = append(summary, cs)
+			cs := models.ConnectionSummary{
+				ConnId:       cid,
+				RoomId:       roomid,
+				GameId:       room.GameId,
+				GameData:     models.BgScore[room.GameId],
+				PlayerColor:  pcol,
+				OtherPlayers: other,
 			}
+
+			summary = append(summary, cs)
 		}
 
 		c.JSON(http.StatusOK, summary)
 
 	} else {
-		if _, exsit := ws.ConnPool.Get(connid); !exsit {
+		player, ok := ws.PlayerPool.Get(connid)
+
+		if !ok {
 			c.JSON(http.StatusBadRequest, models.ErrConnectionNotFound)
 			return
 		}
 
-		found := false
+		if player.RoomId == "" {
+			c.JSON(http.StatusOK, []models.ConnectionSummary{
+				empty(connid),
+			})
+			return
+		}
+
+		room, ok := ws.RoomPool.Get(player.RoomId)
+
+		if !ok {
+			c.JSON(http.StatusOK, []models.ConnectionSummary{
+				empty(connid),
+			})
+			return
+		}
+
 		var cs models.ConnectionSummary
+		other := make([]models.PlayerInfoSet, 0, len(room.Players))
 
-		inner := func(roomid string, room models.RoomInfoSet) {
-			other := make([]models.PlayerInfoSet, 0, len(room.Players))
-
-			for _, player := range room.Players {
-				if connid == player.ConnId {
-					found = true
-					gameid := room.GameId
-
-					cs = models.ConnectionSummary{
-						ConnId:      player.ConnId,
-						RoomId:      roomid,
-						GameId:      gameid,
-						GameData:    models.BgScore[gameid],
-						PlayerColor: player.PlayerColor,
-					}
-
-				} else {
-					other = append(other, player)
+		for _, p := range room.Players {
+			if p.ConnId == connid {
+				cs = models.ConnectionSummary{
+					ConnId:      p.ConnId,
+					RoomId:      player.RoomId,
+					GameId:      room.GameId,
+					GameData:    models.BgScore[room.GameId],
+					PlayerColor: p.PlayerColor,
 				}
-			}
 
-			if found {
-				cs.OtherPlayers = other
-				return
+			} else {
+				other = append(other, p)
 			}
 		}
 
-		ws.RoomPool.Range(inner)
-
-		if !found {
-			cs = empty(connid)
-		}
-
+		cs.OtherPlayers = other
 		res := []models.ConnectionSummary{cs}
+
 		c.JSON(http.StatusOK, res)
 	}
 }

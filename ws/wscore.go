@@ -11,8 +11,10 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type WsConnection struct {
-	*websocket.Conn
+// <summary>: プレイヤーの接続情報をまとめた構造体
+type PlayerConn struct {
+	C      *websocket.Conn
+	RoomId string
 }
 
 var (
@@ -28,14 +30,11 @@ var (
 	// <summary>: WebSocketのRequest用チャンネル
 	chWsReq = make(chan models.WsRequest)
 
-	// <summary>: 接続情報のプール
-	ConnPool = NewConnMap()
-
-	// <summary>: 部屋情報のプール
-	RoomPool = NewRoomMap()
-
-	// <summary>: Player情報のプール
+	// <summary>: プレイヤーの接続情報プール
 	PlayerPool = NewPlayerMap()
+
+	// <summary>: 部屋情報プール
+	RoomPool = NewRoomMap()
 )
 
 // <summary>: WebSocket接続時に行われる動作
@@ -51,16 +50,20 @@ func EntryPoint(w http.ResponseWriter, r *http.Request) {
 	conn, err := wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		logp.IsProcError = true
-		logp.log(fmt.Sprintf("WebSocketのUpgradeに失敗しました：%s", err))
+		logp.log(fmt.Sprintf("WebSocketのUpgradeに失敗しました: %s", err))
 
 		return
 	}
 
-	wsconn := &WsConnection{conn}
 	obj, _ := uuid.NewRandom()
 	connid := fmt.Sprintf("ws.%s", obj.String())
 
-	ConnPool.Set(connid, wsconn)
+	pconn := PlayerConn{
+		C:      conn,
+		RoomId: "",
+	}
+	PlayerPool.Set(connid, pconn)
+
 	logp.ConnId = connid
 	logp.Method = models.CONNECT
 
@@ -71,9 +74,9 @@ func EntryPoint(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	wsconn.sendJson("CONN", res, logp)
+	pconn.sendJson("CONN", res, logp)
 
-	go readRequests(connid, wsconn)
+	go readRequests(connid, pconn)
 }
 
 // <summary>: WebSocketでのリクエストを待ち受けます
@@ -107,26 +110,26 @@ func ServeRequest() {
 }
 
 // <summary>: 受信した内容を読み取ります
-func readRequests(id string, conn *WsConnection) {
+func readRequests(id string, pc PlayerConn) {
 	defer func() {
 		if r := recover(); r != nil {
-			elogp := newLogParams(id, conn.RemoteAddr())
+			elogp := newLogParams(id, pc.C.RemoteAddr())
 			elogp.IsProcError = true
 
 			deleteConnection(id)
-			elogp.log(fmt.Sprintf("予期せぬエラーが発生しました：%s", r))
+			elogp.log(fmt.Sprintf("予期せぬエラーが発生しました: %s", r))
 		}
 	}()
 
 	var req models.WsRequest
 
 	for {
-		logp := newLogParams(id, conn.RemoteAddr())
+		logp := newLogParams(id, pc.C.RemoteAddr())
 
-		if err := conn.ReadJSON(&req); err == nil {
-			req.ClientIP = conn.RemoteAddr()
+		if err := pc.C.ReadJSON(&req); err == nil {
+			req.ClientIP = pc.C.RemoteAddr()
 			logp.Method = models.ParseMethod(req.Method)
-			logp.log(fmt.Sprintf("メッセージ受信：%+v", req))
+			logp.log(fmt.Sprintf("メッセージ受信: %+v", req))
 
 			chWsReq <- req
 
@@ -144,7 +147,7 @@ func readRequests(id string, conn *WsConnection) {
 
 			} else {
 				logp.IsProcError = true
-				logp.log(fmt.Sprintf("メッセージの受信に失敗しました：%s", err))
+				logp.log(fmt.Sprintf("メッセージの受信に失敗しました: %s", err))
 			}
 		}
 	}
@@ -153,49 +156,42 @@ func readRequests(id string, conn *WsConnection) {
 // <summary>: 接続情報を削除します
 func deleteConnection(id string) (notify string) {
 	notify = deletePlayerInfo(id)
-	ConnPool.Delete(id)
+	PlayerPool.Delete(id)
+
 	return
 }
 
-// <summary>: プレイヤー情報を部屋情報リストから削除します
+// <summary>: プレイヤー情報を部屋情報プールから削除します
 func deletePlayerInfo(id string) (notify string) {
 	notify = ""
-	check := ""
-	pos := 0
 
-	inner := func(roomid string, room models.RoomInfoSet) {
+	pc, ok := PlayerPool.Get(id)
+	if !ok {
+		return
+	}
+
+	room, ok := RoomPool.Get(pc.RoomId)
+	if !ok {
+		return
+	}
+
+	if len(room.Players) <= 1 {
+		RoomPool.Delete(pc.RoomId)
+
+	} else {
 		for i, player := range room.Players {
 			if player.ConnId == id {
-				check = roomid
-				pos = i
+				room.Players[i] = room.Players[len(room.Players)-1]
 				break
 			}
 		}
 
-		if check != "" {
-			return
-		}
-	}
-
-	RoomPool.Range(inner)
-
-	if check == "" {
-		return
-	}
-
-	room, _ := RoomPool.Get(check)
-
-	if len(room.Players) <= 1 {
-		RoomPool.Delete(check)
-
-	} else {
-		room.Players[pos] = room.Players[len(room.Players)-1]
 		room.Players = room.Players[:len(room.Players)-1]
-
-		RoomPool.Set(check, room)
-		notify = check
+		RoomPool.Set(pc.RoomId, room)
+		notify = pc.RoomId
 	}
 
+	PlayerPool.SetRoomId(id, "")
 	return
 }
 
@@ -221,26 +217,38 @@ func notifyOtherPlayers(roomid string) {
 	}
 
 	for _, p := range room.Players {
-		conn, ex := ConnPool.Get(p.ConnId)
+		pc, ex := PlayerPool.Get(p.ConnId)
 		if !ex {
 			continue
 		}
 
-		logp := newLogParams(p.ConnId, conn.RemoteAddr())
+		logp := newLogParams(p.ConnId, pc.C.RemoteAddr())
 		logp.Method = models.NOTIFY
 
-		conn.sendJson("NTFY", res, logp)
+		pc.sendJson("NTFY", res, logp)
 	}
 }
 
+// <summary>: エラー内容を送信します
+func (pc PlayerConn) sendError(action string, err models.ErrorMessage, logp logParams) {
+	// TODO: actionはlogParamsの中に入れたらどうか？
+	logp.Method = models.ERROR
+	res := models.WsResponse{
+		Method: models.ERROR.String(),
+		Params: err,
+	}
+
+	pc.sendJson(action, res, logp)
+}
+
 // <summary>: JSONデータを送信します
-func (conn *WsConnection) sendJson(action string, res models.WsResponse, logp logParams) {
-	if err := conn.WriteJSON(res); err == nil {
-		logp.log(fmt.Sprintf("<%s> 送信完了：%+v", action, res))
+func (pc PlayerConn) sendJson(action string, res models.WsResponse, logp logParams) {
+	if err := pc.C.WriteJSON(res); err == nil {
+		logp.log(fmt.Sprintf("<%s> 送信完了: %+v", action, res))
 
 	} else {
 		logp.IsProcError = true
-		e := fmt.Sprintf("<%s> メッセージの送信に失敗しました：%s", action, err)
+		e := fmt.Sprintf("<%s> メッセージの送信に失敗しました: %s", action, err)
 		logp.log(e)
 	}
 }

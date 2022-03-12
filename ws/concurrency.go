@@ -6,81 +6,96 @@ import (
 	"bgtools-api/models"
 )
 
-type ConnMap struct {
-	m  map[string]*WsConnection
+// <summary>: プレイヤー情報向けスレッドセーフなデータ格納庫
+type PlayerMap struct {
+	m  map[string]PlayerConn
 	mu sync.Mutex
 }
 
+// <summary>: 部屋情報向けスレッドセーフなデータ格納庫
 type RoomMap struct {
 	m  map[string]models.RoomInfoSet
 	mu sync.RWMutex
 }
 
-type PlayerMap struct {
-	m  map[string]string
-	mu sync.RWMutex
-}
-
-func NewConnMap() *ConnMap {
-	return &ConnMap{
-		m: make(map[string]*WsConnection),
+// <summary>: プレイヤー情報格納庫の初期化
+func NewPlayerMap() *PlayerMap {
+	return &PlayerMap{
+		m: make(map[string]PlayerConn),
 	}
 }
 
+// <summary>: 部屋情報格納庫の初期化
 func NewRoomMap() *RoomMap {
 	return &RoomMap{
 		m: make(map[string]models.RoomInfoSet),
 	}
 }
 
-func NewPlayerMap() *PlayerMap {
-	return &PlayerMap{
-		m: make(map[string]string),
-	}
+// <summary>: プレイヤーマップにあるデータの数を数えます
+func (p *PlayerMap) Count() int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	return len(p.m)
 }
 
-func (c *ConnMap) Count() int {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+// <summary>: プレイヤーマップからキーをもとに情報を取得します
+func (p *PlayerMap) Get(id string) (PlayerConn, bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-	return len(c.m)
-}
-
-func (c *ConnMap) Get(id string) (*WsConnection, bool) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	v, ok := c.m[id]
+	v, ok := p.m[id]
 	return v, ok
 }
 
-func (c *ConnMap) Set(id string, conn *WsConnection) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+// <summary>: プレイヤーマップに情報を格納します
+func (p *PlayerMap) Set(id string, conn PlayerConn) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-	c.m[id] = conn
+	p.m[id] = conn
 }
 
-func (c *ConnMap) Delete(id string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+// <summary>: プレイヤーマップに部屋情報を上書きします
+// <remark>: 上書きの成否が取得できます
+func (p *PlayerMap) SetRoomId(connid, roomid string) bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-	delete(c.m, id)
-}
+	v, ok := p.m[connid]
 
-func (c *ConnMap) GetKeys() map[string]struct{} {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	res := make(map[string]struct{}, len(c.m))
-
-	for k := range c.m {
-		res[k] = struct{}{}
+	if ok {
+		v.RoomId = roomid
+		p.m[connid] = v
 	}
 
-	return res
+	return ok
 }
 
+// <summary>: プレイヤーマップから情報を削除します
+func (p *PlayerMap) Delete(id string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	delete(p.m, id)
+}
+
+// <summary>: プレイヤーマップからプレイヤーがいる部屋情報の一覧を取得します
+func (p *PlayerMap) PlayerRoomData() map[string]string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	result := make(map[string]string, len(p.m))
+
+	for k, v := range p.m {
+		result[k] = v.RoomId
+	}
+
+	return result
+}
+
+// <summary>: 部屋マップにあるデータの数を数えます
 func (r *RoomMap) Count() int {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -88,6 +103,7 @@ func (r *RoomMap) Count() int {
 	return len(r.m)
 }
 
+// <summary>: 部屋マップからキーをもとに情報を取得します
 func (r *RoomMap) Get(id string) (models.RoomInfoSet, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -96,6 +112,7 @@ func (r *RoomMap) Get(id string) (models.RoomInfoSet, bool) {
 	return v, ok
 }
 
+// <summary>: 部屋マップに情報を格納します
 func (r *RoomMap) Set(id string, room models.RoomInfoSet) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -103,6 +120,7 @@ func (r *RoomMap) Set(id string, room models.RoomInfoSet) {
 	r.m[id] = room
 }
 
+// <summary>: 部屋マップから情報を削除します
 func (r *RoomMap) Delete(id string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -110,6 +128,7 @@ func (r *RoomMap) Delete(id string) {
 	delete(r.m, id)
 }
 
+// <summary>: 部屋マップの情報に対して、一連の処理を実行します
 func (r *RoomMap) Range(f func(id string, room models.RoomInfoSet)) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -117,33 +136,4 @@ func (r *RoomMap) Range(f func(id string, room models.RoomInfoSet)) {
 	for k, v := range r.m {
 		f(k, v)
 	}
-}
-
-func (p *PlayerMap) Count() int {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	return len(p.m)
-}
-
-func (p *PlayerMap) Get(id string) (string, bool) {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-
-	v, ok := p.m[id]
-	return v, ok
-}
-
-func (p *PlayerMap) Set(connid string, roomid string) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	p.m[connid] = roomid
-}
-
-func (p *PlayerMap) Delete(id string) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	delete(p.m, id)
 }

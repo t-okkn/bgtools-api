@@ -109,6 +109,7 @@ func (p logParams) methodColor() string {
 		return ""
 	}
 
+	//TODO: まだ作っていない専用色を作る
 	switch p.Method {
 	case models.CREATE:
 		return blue

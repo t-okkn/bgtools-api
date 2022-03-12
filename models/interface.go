@@ -56,7 +56,7 @@ type ErrorMessage struct {
 
 // <summary>: 部屋の存在確認に使用される構造体
 type CheckRoomResult struct {
-	IsExsit bool   `json:"is_exsit"`
+	IsExist bool   `json:"is_exist"`
 	GameId  string `json:"game_id"`
 }
 

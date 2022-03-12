@@ -11,7 +11,7 @@ func actionCreate(req models.WsRequest) {
 	action := models.CREATE.String()
 	logp := newLogParams(req.ConnId, req.ClientIP)
 
-	conn, ok := ConnPool.Get(req.ConnId)
+	pc, ok := PlayerPool.Get(req.ConnId)
 	if !ok {
 		logp.IsProcError = true
 		logp.log(fmt.Sprintf("<%s> 送信されたconnection_idが不正です", action))
@@ -19,17 +19,15 @@ func actionCreate(req models.WsRequest) {
 		return
 	}
 
-	var response models.WsResponse
+	// 別室に既に入室していればエラー
+	if pc.RoomId != "" {
+		pc.sendError(action, models.ErrEnteredAnotherRoom, logp)
+		return
+	}
 
 	// リクエストされた部屋情報がなければエラー
 	if _, exist := RoomPool.Get(req.RoomId); exist {
-		logp.Method = models.ERROR
-		response = models.WsResponse{
-			Method: models.ERROR.String(),
-			Params: models.ErrRoomExisted,
-		}
-
-		conn.sendJson(action, response, logp)
+		pc.sendError(action, models.ErrRoomExisted, logp)
 		return
 	}
 
@@ -37,13 +35,7 @@ func actionCreate(req models.WsRequest) {
 
 	// リクエストされたボードゲーム情報がなければエラー
 	if !exist {
-		logp.Method = models.ERROR
-		response = models.WsResponse{
-			Method: models.ERROR.String(),
-			Params: models.ErrBoardgameNotFound,
-		}
-
-		conn.sendJson(action, response, logp)
+		pc.sendError(action, models.ErrBoardgameNotFound, logp)
 		return
 	}
 
@@ -57,10 +49,12 @@ func actionCreate(req models.WsRequest) {
 		GameId:  req.GameId,
 		Players: players,
 	}
+
 	RoomPool.Set(req.RoomId, room)
+	PlayerPool.SetRoomId(req.ConnId, req.RoomId)
 
 	logp.Method = models.OK
-	response = models.WsResponse{
+	response := models.WsResponse{
 		Method: models.OK.String(),
 		Params: models.RoomResponse{
 			IsWait:   1 < data.MinPlayers,
@@ -68,7 +62,7 @@ func actionCreate(req models.WsRequest) {
 		},
 	}
 
-	conn.sendJson(action, response, logp)
+	pc.sendJson(action, response, logp)
 }
 
 // <summary>: [Method] JOIN に関する動作を定義します
@@ -76,7 +70,7 @@ func actionJoin(req models.WsRequest) {
 	action := models.JOIN.String()
 	logp := newLogParams(req.ConnId, req.ClientIP)
 
-	conn, ok := ConnPool.Get(req.ConnId)
+	pc, ok := PlayerPool.Get(req.ConnId)
 	if !ok {
 		logp.IsProcError = true
 		logp.log(fmt.Sprintf("<%s> 送信されたconnection_idが不正です", action))
@@ -84,67 +78,38 @@ func actionJoin(req models.WsRequest) {
 		return
 	}
 
-	var response models.WsResponse
+	// 別室に既に入室していればエラー
+	if pc.RoomId != "" {
+		pc.sendError(action, models.ErrEnteredAnotherRoom, logp)
+		return
+	}
+
 	room, exist := RoomPool.Get(req.RoomId)
 
 	// リクエストされた部屋情報がなければエラー
 	if !exist {
-		logp.Method = models.ERROR
-		response = models.WsResponse{
-			Method: models.ERROR.String(),
-			Params: models.ErrRoomNotFound,
-		}
-
-		conn.sendJson(action, response, logp)
+		pc.sendError(action, models.ErrRoomNotFound, logp)
 		return
 	}
 
 	// リクエストされた部屋情報とゲームが不一致であればエラー
 	if room.GameId != req.GameId {
-		logp.Method = models.ERROR
-		response = models.WsResponse{
-			Method: models.ERROR.String(),
-			Params: models.ErrMismatchGame,
-		}
-
-		conn.sendJson(action, response, logp)
+		pc.sendError(action, models.ErrMismatchGame, logp)
 		return
 	}
 
-	conn_dup := false
-	col_dup := false
+	col_ex := false
 
 	for _, p := range room.Players {
-		if p.ConnId == req.ConnId {
-			conn_dup = true
-		}
-
 		if p.PlayerColor == req.PlayerColor {
-			col_dup = true
+			col_ex = true
+			break
 		}
-	}
-
-	// 同じ部屋に入ろうとしていればエラー
-	if conn_dup {
-		logp.Method = models.ERROR
-		response = models.WsResponse{
-			Method: models.ERROR.String(),
-			Params: models.ErrConnectionDuplicated,
-		}
-
-		conn.sendJson(action, response, logp)
-		return
 	}
 
 	// 同じプレイヤー色を使おうとしていればエラー
-	if col_dup {
-		logp.Method = models.ERROR
-		response = models.WsResponse{
-			Method: models.ERROR.String(),
-			Params: models.ErrColorDuplicated,
-		}
-
-		conn.sendJson(action, response, logp)
+	if col_ex {
+		pc.sendError(action, models.ErrSameColorExistedInRoom, logp)
 		return
 	}
 
@@ -157,7 +122,7 @@ func actionJoin(req models.WsRequest) {
 	min := models.BgScore[room.GameId].MinPlayers
 
 	logp.Method = models.OK
-	response = models.WsResponse{
+	response := models.WsResponse{
 		Method: models.OK.String(),
 		Params: models.RoomResponse{
 			IsWait:   len(room.Players) < min,
@@ -166,23 +131,24 @@ func actionJoin(req models.WsRequest) {
 	}
 
 	RoomPool.Set(req.RoomId, room)
-	conn.sendJson(action, response, logp)
+	PlayerPool.SetRoomId(req.ConnId, req.RoomId)
+	pc.sendJson(action, response, logp)
 
 	for _, p := range room.Players {
 		if p.ConnId == req.ConnId {
 			continue
 		}
 
-		in_conn, ex := ConnPool.Get(p.ConnId)
+		inpc, ex := PlayerPool.Get(p.ConnId)
 		if !ex {
 			continue
 		}
 
-		l := newLogParams(p.ConnId, in_conn.RemoteAddr())
+		l := newLogParams(p.ConnId, inpc.C.RemoteAddr())
 		l.Method = models.NOTIFY
 		response.Method = models.NOTIFY.String()
 
-		in_conn.sendJson(action, response, l)
+		inpc.sendJson(action, response, l)
 	}
 }
 
@@ -191,7 +157,7 @@ func actionLeave(req models.WsRequest) {
 	action := models.LEAVE.String()
 	logp := newLogParams(req.ConnId, req.ClientIP)
 
-	conn, ok := ConnPool.Get(req.ConnId)
+	pc, ok := PlayerPool.Get(req.ConnId)
 	if !ok {
 		logp.IsProcError = true
 		logp.log(fmt.Sprintf("<%s> 送信されたconnection_idが不正です", action))
@@ -199,56 +165,25 @@ func actionLeave(req models.WsRequest) {
 		return
 	}
 
-	var response models.WsResponse
-	notify := ""
-
+	// リクエストされた部屋情報がなければエラー
 	if _, exist := RoomPool.Get(req.RoomId); !exist {
-		logp.Method = models.ERROR
-		response = models.WsResponse{
-			Method: models.ERROR.String(),
-			Params: models.ErrRoomNotFound,
-		}
-
-		conn.sendJson(action, response, logp)
+		pc.sendError(action, models.ErrRoomNotFound, logp)
 		return
 	}
 
-	notify = deletePlayerInfo(req.ConnId)
+	notify := deletePlayerInfo(req.ConnId)
 
 	logp.Method = models.OK
-	response = models.WsResponse{
+	response := models.WsResponse{
 		Method: models.OK.String(),
 		Params: "",
 	}
 
-	conn.sendJson(action, response, logp)
+	pc.sendJson(action, response, logp)
 
-	// notifyが空文字のままならブロードキャストはしない
-	if notify == "" {
-		return
-	}
-
-	room, _ := RoomPool.Get(req.RoomId)
-
-	for _, p := range room.Players {
-		in_conn, ex := ConnPool.Get(p.ConnId)
-		if !ex {
-			continue
-		}
-
-		l := newLogParams(p.ConnId, in_conn.RemoteAddr())
-		l.Method = models.NOTIFY
-
-		min := models.BgScore[room.GameId].MinPlayers
-		res := models.WsResponse{
-			Method: models.NOTIFY.String(),
-			Params: models.RoomResponse{
-				IsWait:   len(room.Players) < min,
-				RoomInfo: room,
-			},
-		}
-
-		in_conn.sendJson(action, res, l)
+	// notifyが空文字でなければブロードキャスト
+	if notify != "" {
+		notifyOtherPlayers(notify)
 	}
 }
 
@@ -257,7 +192,7 @@ func actionBroadcast(req models.WsRequest) {
 	action := models.BROADCAST.String()
 	logp := newLogParams(req.ConnId, req.ClientIP)
 
-	conn, ok := ConnPool.Get(req.ConnId)
+	pc, ok := PlayerPool.Get(req.ConnId)
 	if !ok {
 		logp.IsProcError = true
 		logp.log(fmt.Sprintf("<%s> 送信されたconnection_idが不正です", action))
@@ -265,30 +200,17 @@ func actionBroadcast(req models.WsRequest) {
 		return
 	}
 
-	var response models.WsResponse
 	room, exist := RoomPool.Get(req.RoomId)
 
 	// リクエストされた部屋情報がなければエラー
 	if !exist {
-		logp.Method = models.ERROR
-		response = models.WsResponse{
-			Method: models.ERROR.String(),
-			Params: models.ErrRoomNotFound,
-		}
-
-		conn.sendJson(action, response, logp)
+		pc.sendError(action, models.ErrRoomNotFound, logp)
 		return
 	}
 
 	// リクエストされた部屋情報とゲームが不一致であればエラー
 	if room.GameId != req.GameId {
-		logp.Method = models.ERROR
-		response = models.WsResponse{
-			Method: models.ERROR.String(),
-			Params: models.ErrMismatchGame,
-		}
-
-		conn.sendJson(action, response, logp)
+		pc.sendError(action, models.ErrMismatchGame, logp)
 		return
 	}
 
@@ -303,13 +225,7 @@ func actionBroadcast(req models.WsRequest) {
 
 	// 部屋にプレイヤーが入室していなければエラー
 	if !ex_conn {
-		logp.Method = models.ERROR
-		response = models.WsResponse{
-			Method: models.ERROR.String(),
-			Params: models.ErrNotInRoom,
-		}
-
-		conn.sendJson(action, response, logp)
+		pc.sendError(action, models.ErrNotInRoom, logp)
 		return
 	}
 
@@ -322,28 +238,28 @@ func actionBroadcast(req models.WsRequest) {
 	}
 
 	logp.Method = models.OK
-	response = models.WsResponse{
+	response := models.WsResponse{
 		Method: models.OK.String(),
 		Params: point,
 	}
 
-	conn.sendJson(action, response, logp)
+	pc.sendJson(action, response, logp)
 
 	for _, p := range room.Players {
 		if p.ConnId == req.ConnId {
 			continue
 		}
 
-		in_conn, ex := ConnPool.Get(p.ConnId)
+		inpc, ex := PlayerPool.Get(p.ConnId)
 		if !ex {
 			continue
 		}
 
-		l := newLogParams(p.ConnId, in_conn.RemoteAddr())
+		l := newLogParams(p.ConnId, inpc.C.RemoteAddr())
 		l.Method = models.BROADCAST
 		response.Method = models.BROADCAST.String()
 
-		in_conn.sendJson(action, response, l)
+		inpc.sendJson(action, response, l)
 	}
 }
 
@@ -352,7 +268,7 @@ func actionNone(req models.WsRequest) {
 	action := models.NONE.String()
 	logp := newLogParams(req.ConnId, req.ClientIP)
 
-	conn, ok := ConnPool.Get(req.ConnId)
+	pc, ok := PlayerPool.Get(req.ConnId)
 	if !ok {
 		logp.IsProcError = true
 		logp.log(fmt.Sprintf("<%s> 送信されたconnection_idが不正です", action))
@@ -360,11 +276,5 @@ func actionNone(req models.WsRequest) {
 		return
 	}
 
-	logp.Method = models.ERROR
-	response := models.WsResponse{
-		Method: models.ERROR.String(),
-		Params: models.ErrInvalidMethod,
-	}
-
-	conn.sendJson(action, response, logp)
+	pc.sendError(action, models.ErrInvalidMethod, logp)
 }

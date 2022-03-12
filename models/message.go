@@ -30,26 +30,26 @@ var ErrInvalidMethod = ErrorMessage{
 	Message: "無効なメソッドが指定されました",
 }
 
+// <summary>: 【エラー】別室へ既に入室している
+var ErrEnteredAnotherRoom = ErrorMessage{
+	Error: "E201",
+	Message: "一つの部屋へ既に入室しています",
+}
+
 // <summary>: 【エラー】部屋が既に存在します
 var ErrRoomExisted = ErrorMessage{
-	Error: "E201",
+	Error: "E202",
 	Message: "指定された部屋は既に存在しています",
 }
 
 // <summary>: 【エラー】部屋のゲーム内容に誤りがある
 var ErrMismatchGame = ErrorMessage{
-	Error: "E202",
+	Error: "E203",
 	Message: "指定された部屋のゲーム内容が違います",
 }
 
-// <summary>: 【エラー】部屋に同一の接続元からインしようとしている
-var ErrConnectionDuplicated = ErrorMessage{
-	Error: "E203",
-	Message: "指定された部屋には既に同一接続元から入室しています",
-}
-
 // <summary>: 【エラー】部屋に同じ色のプレイヤーが参加しようとしている
-var ErrColorDuplicated = ErrorMessage{
+var ErrSameColorExistedInRoom = ErrorMessage{
 	Error: "E204",
-	Message: "指定された部屋には既に同色プレイヤーが入室しています",
+	Message: "指定された部屋には既に同色のプレイヤーが入室しています",
 }
