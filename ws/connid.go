@@ -66,6 +66,7 @@ func getConnId(remote string) (string, error) {
 	return fmt.Sprintf("%s-%s", hashid, com), nil
 }
 
+// <summary>: アドレスからIPアドレスとポート番号を抽出します
 func addressToIpPort(remote string) ([]byte, uint16, error) {
 	h, p, err := net.SplitHostPort(remote)
 	if err != nil {
@@ -86,18 +87,20 @@ func addressToIpPort(remote string) ([]byte, uint16, error) {
 	return []byte(ip.To16()), uint16(port), nil
 }
 
+// <summary>: ConnIdが正しいか検証します（簡易的）
 func isCorrectConnId(connid, remote string) bool {
 	h, p, err := net.SplitHostPort(remote)
 	if err != nil {
 		return false
 	}
 
-	ip, port := connIdToIp(connid)
+	ip, port := getIpPort(connid)
 
 	return ip == h && port == p
 }
 
-func connIdToIp(connid string) (string, string) {
+// <summary>: ConnIdからIPアドレスとポート番号を取得します
+func getIpPort(connid string) (string, string) {
 	cutid := strings.Split(connid, "-")
 	if len(cutid) != 2 {
 		return "", ""
@@ -140,6 +143,7 @@ func connIdToIp(connid string) (string, string) {
 	return ip, port
 }
 
+// <summary>: IPアドレスとポート番号を圧縮された文字列に変換します
 func compressedString(ip []byte, port uint16) string {
 	conv := make([]byte, 2, 18)
 	binary.BigEndian.PutUint16(conv, port)

@@ -53,7 +53,7 @@ func ChangeOutputDestination(dest io.Writer) {
 
 // <summary>: 新規logParams構造体を生成します
 func newLogParams(connid string) logParams {
-	ip, _ := connIdToIp(connid)
+	ip, _ := getIpPort(connid)
 
 	return logParams{
 		ClientIP:    ip,
