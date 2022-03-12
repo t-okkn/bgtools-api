@@ -30,6 +30,12 @@ var ErrInvalidMethod = ErrorMessage{
 	Message: "無効なメソッドが指定されました",
 }
 
+// <summary>: 【エラー】不正なConnectionID
+var ErrIllegalConnId = ErrorMessage{
+	Error: "E102",
+	Message: "不正なconnection_idが検知されました",
+}
+
 // <summary>: 【エラー】別室へ既に入室している
 var ErrEnteredAnotherRoom = ErrorMessage{
 	Error: "E201",

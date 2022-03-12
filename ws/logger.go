@@ -3,7 +3,6 @@ package ws
 import (
 	"fmt"
 	"io"
-	"net"
 	"os"
 	"time"
 
@@ -53,12 +52,12 @@ func ChangeOutputDestination(dest io.Writer) {
 }
 
 // <summary>: 新規logParams構造体を生成します
-func newLogParams(id string, host net.Addr) logParams {
-	h, _, _ := net.SplitHostPort(host.String())
+func newLogParams(connid string) logParams {
+	ip, _ := connIdToIp(connid)
 
 	return logParams{
-		ClientIP:    h,
-		ConnId:      id,
+		ClientIP:    ip,
+		ConnId:      connid,
 		Method:      models.NONE,
 		IsProcError: false,
 	}

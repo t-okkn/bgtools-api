@@ -8,7 +8,7 @@ import (
 
 // <summary>: [Method] CREA に関する動作を定義します
 func actionCreate(req models.WsRequest) {
-	logp := newLogParams(req.ConnId, req.ClientIP)
+	logp := newLogParams(req.ConnId)
 	logp.Prefix = fmt.Sprintf("<%s>", models.CREATE.String())
 
 	pc, ok := PlayerPool.Get(req.ConnId)
@@ -67,7 +67,7 @@ func actionCreate(req models.WsRequest) {
 
 // <summary>: [Method] JOIN に関する動作を定義します
 func actionJoin(req models.WsRequest) {
-	logp := newLogParams(req.ConnId, req.ClientIP)
+	logp := newLogParams(req.ConnId)
 	logp.Prefix = fmt.Sprintf("<%s>", models.JOIN.String())
 
 	pc, ok := PlayerPool.Get(req.ConnId)
@@ -144,7 +144,7 @@ func actionJoin(req models.WsRequest) {
 			continue
 		}
 
-		l := newLogParams(p.ConnId, inpc.C.RemoteAddr())
+		l := newLogParams(p.ConnId)
 		l.Method = models.NOTIFY
 		l.Prefix = fmt.Sprintf("<%s>", models.NOTIFY.String())
 		response.Method = models.NOTIFY.String()
@@ -155,7 +155,7 @@ func actionJoin(req models.WsRequest) {
 
 // <summary>: [Method] LEAV に関する動作を定義します
 func actionLeave(req models.WsRequest) {
-	logp := newLogParams(req.ConnId, req.ClientIP)
+	logp := newLogParams(req.ConnId)
 	logp.Prefix = fmt.Sprintf("<%s>", models.LEAVE.String())
 
 	pc, ok := PlayerPool.Get(req.ConnId)
@@ -190,7 +190,7 @@ func actionLeave(req models.WsRequest) {
 
 // <summary>: [Method] BRDC に関する動作を定義します
 func actionBroadcast(req models.WsRequest) {
-	logp := newLogParams(req.ConnId, req.ClientIP)
+	logp := newLogParams(req.ConnId)
 	logp.Prefix = fmt.Sprintf("<%s>", models.BROADCAST.String())
 
 	pc, ok := PlayerPool.Get(req.ConnId)
@@ -256,7 +256,7 @@ func actionBroadcast(req models.WsRequest) {
 			continue
 		}
 
-		l := newLogParams(p.ConnId, inpc.C.RemoteAddr())
+		l := newLogParams(p.ConnId)
 		l.Method = models.BROADCAST
 		l.Prefix = logp.Prefix
 		response.Method = models.BROADCAST.String()
@@ -267,7 +267,7 @@ func actionBroadcast(req models.WsRequest) {
 
 // <summary>: [Method] NONE に関する動作を定義します
 func actionNone(req models.WsRequest) {
-	logp := newLogParams(req.ConnId, req.ClientIP)
+	logp := newLogParams(req.ConnId)
 	logp.Prefix = fmt.Sprintf("<%s>", models.NONE.String())
 
 	pc, ok := PlayerPool.Get(req.ConnId)

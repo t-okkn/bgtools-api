@@ -1,7 +1,5 @@
 package models
 
-import "net"
-
 // <summary>: プレーヤーの情報
 type PlayerInfoSet struct {
 	ConnId      string `json:"connection_id"`
@@ -22,7 +20,6 @@ type WsRequest struct {
 	GameId      string   `json:"game_id"`
 	PlayerColor string   `json:"player_color"`
 	Points      []int    `json:"points"`
-	ClientIP    net.Addr `json:"-"`
 }
 
 // <summary>: WebSocketからの返却用データの構造体

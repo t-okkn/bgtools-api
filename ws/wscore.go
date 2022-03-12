@@ -2,12 +2,10 @@ package ws
 
 import (
 	"fmt"
-	"net"
 	"net/http"
 
 	"bgtools-api/models"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
@@ -39,13 +37,14 @@ var (
 
 // <summary>: WebSocket接続時に行われる動作
 func EntryPoint(w http.ResponseWriter, r *http.Request) {
-	h, _, _ := net.SplitHostPort(r.RemoteAddr)
-	logp := logParams{
-		ClientIP:    h,
-		ConnId:      "",
-		Prefix:      "",
-		Method:      models.NONE,
-		IsProcError: false,
+	connid, err := getConnId(r.RemoteAddr)
+	logp := newLogParams(connid)
+
+	if err != nil {
+		logp.IsProcError = true
+		logp.log(fmt.Sprintf("不正な接続元からのアクセスです: %s", err))
+
+		return
 	}
 
 	conn, err := wsUpgrader.Upgrade(w, r, nil)
@@ -55,9 +54,6 @@ func EntryPoint(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
-
-	obj, _ := uuid.NewRandom()
-	connid := fmt.Sprintf("ws.%s", obj.String())
 
 	pconn := PlayerConn{
 		C:      conn,
@@ -115,7 +111,7 @@ func ServeRequest() {
 func readRequests(id string, pc PlayerConn) {
 	defer func() {
 		if r := recover(); r != nil {
-			elogp := newLogParams(id, pc.C.RemoteAddr())
+			elogp := newLogParams(id)
 			elogp.IsProcError = true
 
 			deleteConnection(id)
@@ -126,12 +122,16 @@ func readRequests(id string, pc PlayerConn) {
 	var req models.WsRequest
 
 	for {
-		logp := newLogParams(id, pc.C.RemoteAddr())
+		logp := newLogParams(id)
 
 		if err := pc.C.ReadJSON(&req); err == nil {
-			req.ClientIP = pc.C.RemoteAddr()
 			logp.Method = models.ParseMethod(req.Method)
 			logp.log(fmt.Sprintf("メッセージ受信: %+v", req))
+
+			if !isCorrectConnId(req.ConnId, pc.C.RemoteAddr().String()) {
+				pc.sendError(models.ErrIllegalConnId, logp)
+				continue
+			}
 
 			chWsReq <- req
 
@@ -226,7 +226,7 @@ func notifyOtherPlayers(roomid string) {
 			continue
 		}
 
-		logp := newLogParams(p.ConnId, pc.C.RemoteAddr())
+		logp := newLogParams(p.ConnId)
 		logp.Method = models.NOTIFY
 		logp.Prefix = fmt.Sprintf("<%s>", models.NOTIFY.String())
 
