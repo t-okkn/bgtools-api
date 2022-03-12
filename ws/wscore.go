@@ -43,6 +43,7 @@ func EntryPoint(w http.ResponseWriter, r *http.Request) {
 	logp := logParams{
 		ClientIP:    h,
 		ConnId:      "",
+		Prefix:      "",
 		Method:      models.NONE,
 		IsProcError: false,
 	}
@@ -66,6 +67,7 @@ func EntryPoint(w http.ResponseWriter, r *http.Request) {
 
 	logp.ConnId = connid
 	logp.Method = models.CONNECT
+	logp.Prefix = fmt.Sprintf("<%s>", models.CONNECT.String())
 
 	res := models.WsResponse{
 		Method: models.CONNECT.String(),
@@ -74,7 +76,7 @@ func EntryPoint(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	pconn.sendJson("CONN", res, logp)
+	pconn.sendJson(res, logp)
 
 	go readRequests(connid, pconn)
 }
@@ -137,7 +139,8 @@ func readRequests(id string, pc PlayerConn) {
 			// TODO: 他のCloseCodeのときはどうするか検討
 			// そもそもどういう状況でどんなCloseCodeになるか要調査
 			if websocket.IsCloseError(err, websocket.CloseNoStatusReceived) {
-				logp.log("[close-1005] NoStatusReceived: 接続が切断されました")
+				logp.Prefix = "[close-1005]"
+				logp.log("NoStatusReceived: 接続が切断されました")
 
 				if n := deleteConnection(id); n != "" {
 					notifyOtherPlayers(n)
@@ -224,31 +227,31 @@ func notifyOtherPlayers(roomid string) {
 
 		logp := newLogParams(p.ConnId, pc.C.RemoteAddr())
 		logp.Method = models.NOTIFY
+		logp.Prefix = fmt.Sprintf("<%s>", models.NOTIFY.String())
 
-		pc.sendJson("NTFY", res, logp)
+		pc.sendJson(res, logp)
 	}
 }
 
 // <summary>: エラー内容を送信します
-func (pc PlayerConn) sendError(action string, err models.ErrorMessage, logp logParams) {
-	// TODO: actionはlogParamsの中に入れたらどうか？
+func (pc PlayerConn) sendError(err models.ErrorMessage, logp logParams) {
 	logp.Method = models.ERROR
 	res := models.WsResponse{
 		Method: models.ERROR.String(),
 		Params: err,
 	}
 
-	pc.sendJson(action, res, logp)
+	pc.sendJson(res, logp)
 }
 
 // <summary>: JSONデータを送信します
-func (pc PlayerConn) sendJson(action string, res models.WsResponse, logp logParams) {
+func (pc PlayerConn) sendJson(res models.WsResponse, logp logParams) {
 	if err := pc.C.WriteJSON(res); err == nil {
-		logp.log(fmt.Sprintf("<%s> 送信完了: %+v", action, res))
+		logp.log(fmt.Sprintf("送信完了: %+v", res))
 
 	} else {
 		logp.IsProcError = true
-		e := fmt.Sprintf("<%s> メッセージの送信に失敗しました: %s", action, err)
+		e := fmt.Sprintf("メッセージの送信に失敗しました: %s", err)
 		logp.log(e)
 	}
 }

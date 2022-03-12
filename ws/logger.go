@@ -31,6 +31,7 @@ var (
 type logParams struct {
 	ClientIP    string
 	ConnId      string
+	Prefix      string
 	Method      models.Method
 	IsProcError bool
 }
@@ -81,7 +82,7 @@ func (p logParams) log(message string) {
 			redColor = ""
 		}
 
-		str = fmt.Sprintf("[%s] %v | %15s | %s | %s【処理エラー】%s %s",
+		str = fmt.Sprintf("[%s] %v | %15s | %s | %s[ERROR]%s %s",
 			tag,
 			time.Now().Format("2006/01/02 - 15:04:05"),
 			p.ClientIP,
@@ -90,13 +91,18 @@ func (p logParams) log(message string) {
 		)
 
 	} else {
-		str = fmt.Sprintf("[%s] %v | %15s | %s |%s %-4s %s| %s",
+		prefix := p.Prefix + " "
+		if p.Prefix == "" {
+			prefix = ""
+		}
+
+		str = fmt.Sprintf("[%s] %v | %15s | %s |%s %-4s %s| %s%s",
 			tag,
 			time.Now().Format("2006/01/02 - 15:04:05"),
 			p.ClientIP,
 			p.ConnId,
 			p.methodColor(), p.Method.String(), resetColor,
-			message,
+			prefix, message,
 		)
 	}
 
