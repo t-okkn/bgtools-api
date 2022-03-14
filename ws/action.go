@@ -180,7 +180,7 @@ func actionLeave(req models.WsRequest) {
 	response := models.WsResponse{
 		Method: models.OK.String(),
 		Params: models.OKMessage{
-			Message: "Done",
+			Message: "LEAVE.Done",
 		},
 	}
 
