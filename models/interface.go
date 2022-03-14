@@ -75,7 +75,7 @@ type ConnectionSummary struct {
 	ConnId       string          `json:"connection_id"`
 	RoomId       string          `json:"room_id"`
 	GameId       string          `json:"game_id"`
-	GameData     BgPartialData   `json:"gama_data"`
+	GameData     BgPartialData   `json:"game_data"`
 	PlayerColor  string          `json:"player_color"`
 	OtherPlayers []PlayerInfoSet `json:"other_players"`
 }
@@ -84,6 +84,6 @@ type ConnectionSummary struct {
 type RoomSummary struct {
 	RoomId   string          `json:"room_id"`
 	GameId   string          `json:"game_id"`
-	GameData BgPartialData   `json:"gama_data"`
+	GameData BgPartialData   `json:"game_data"`
 	Players  []PlayerInfoSet `json:"players"`
 }
