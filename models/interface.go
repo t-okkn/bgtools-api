@@ -29,7 +29,7 @@ type WsResponse struct {
 }
 
 // <summary>: 接続時、Response内のParamsに使用される構造体
-type ConnectedResponse struct {
+type ConnectResponse struct {
 	ConnId string `json:"connection_id"`
 }
 

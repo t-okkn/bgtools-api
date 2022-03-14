@@ -6,7 +6,7 @@ import (
 	"bgtools-api/models"
 )
 
-// <summary>: [Method] CREA に関する動作を定義します
+// <summary>: [Method] CREATE に関する動作を定義します
 func actionCreate(req models.WsRequest) {
 	logp := newLogParams(req.ConnId)
 	logp.Prefix = fmt.Sprintf("<%s>", models.CREATE.String())
@@ -153,7 +153,7 @@ func actionJoin(req models.WsRequest) {
 	}
 }
 
-// <summary>: [Method] LEAV に関する動作を定義します
+// <summary>: [Method] LEAVE に関する動作を定義します
 func actionLeave(req models.WsRequest) {
 	logp := newLogParams(req.ConnId)
 	logp.Prefix = fmt.Sprintf("<%s>", models.LEAVE.String())
@@ -188,7 +188,7 @@ func actionLeave(req models.WsRequest) {
 	}
 }
 
-// <summary>: [Method] BRDC に関する動作を定義します
+// <summary>: [Method] BROADCAST に関する動作を定義します
 func actionBroadcast(req models.WsRequest) {
 	logp := newLogParams(req.ConnId)
 	logp.Prefix = fmt.Sprintf("<%s>", models.BROADCAST.String())

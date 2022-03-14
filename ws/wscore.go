@@ -67,7 +67,7 @@ func EntryPoint(w http.ResponseWriter, r *http.Request) {
 
 	res := models.WsResponse{
 		Method: models.CONNECT.String(),
-		Params: models.ConnectedResponse{
+		Params: models.ConnectResponse{
 			ConnId: connid,
 		},
 	}
