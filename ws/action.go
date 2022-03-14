@@ -177,7 +177,9 @@ func actionLeave(req models.WsRequest) {
 	logp.Method = models.OK
 	response := models.WsResponse{
 		Method: models.OK.String(),
-		Params: "",
+		Params: models.OKMessage{
+			Message: "Done",
+		},
 	}
 
 	pc.sendJson(response, logp)

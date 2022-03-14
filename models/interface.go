@@ -45,6 +45,11 @@ type PointResponse struct {
 	Points []int         `json:"points"`
 }
 
+// <summary>: MethodがOKの時、特に伝達する情報がない場合に使用される構造体
+type OKMessage struct {
+	Message string `json:"message"`
+}
+
 // <summary>: エラーに関する情報を格納する構造体
 type ErrorMessage struct {
 	Error   string `json:"error"`
