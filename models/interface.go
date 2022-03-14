@@ -36,6 +36,7 @@ type ConnectResponse struct {
 // <summary>: 部屋の情報伝達時、Response内のParamsに使用される構造体
 type RoomResponse struct {
 	IsWait   bool        `json:"is_wait"`
+	RoomId   string      `json:"room_id"`
 	RoomInfo RoomInfoSet `json:"room"`
 }
 

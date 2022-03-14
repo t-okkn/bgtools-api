@@ -216,6 +216,7 @@ func notifyOtherPlayers(roomid string) {
 		Method: models.NOTIFY.String(),
 		Params: models.RoomResponse{
 			IsWait:   len(room.Players) < min,
+			RoomId:   roomid,
 			RoomInfo: room,
 		},
 	}

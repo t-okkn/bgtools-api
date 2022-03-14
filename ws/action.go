@@ -58,6 +58,7 @@ func actionCreate(req models.WsRequest) {
 		Method: models.OK.String(),
 		Params: models.RoomResponse{
 			IsWait:   1 < data.MinPlayers,
+			RoomId:   req.RoomId,
 			RoomInfo: room,
 		},
 	}
@@ -126,6 +127,7 @@ func actionJoin(req models.WsRequest) {
 		Method: models.OK.String(),
 		Params: models.RoomResponse{
 			IsWait:   len(room.Players) < min,
+			RoomId:   req.RoomId,
 			RoomInfo: room,
 		},
 	}
